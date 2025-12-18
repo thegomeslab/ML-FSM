@@ -18,12 +18,13 @@ Only the selected calculator needs to be installed in the Python environment.
 import argparse
 import os
 import shutil
+import numpy as np
 from pathlib import Path
 from typing import Any
 
 from mlfsm.cos import FreezingString
 from mlfsm.opt import CartesianOptimizer, InternalsOptimizer, Optimizer
-from mlfsm.utils import load_xyz
+from mlfsm.utils import load_xyz, load_xyz_fixed
 
 HERE = Path(__file__).parent
 
@@ -41,6 +42,7 @@ def run_fsm(
     ninterp: int = 100,
     suffix: str | None = None,
     calculator: str = "qchem",
+    fixed: str = "",
     chg: int = 0,
     mult: int = 1,
     nt: int = 1,
@@ -71,8 +73,27 @@ def run_fsm(
 
     outdir.mkdir(parents=True, exist_ok=True)
 
+    # get fixed atom indices
+    def parse_indices(text):
+        if text is None or text.strip() == "":
+            return np.array([], dtype=int)
+        indices = []
+        for part in text.split(','):
+            part = part.strip()
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                indices.extend(range(start, end + 1))
+            else:
+                indices.append(int(part))
+        return np.array(indices, dtype=int) - 1
+
+    fixed_atoms = parse_indices(fixed)
+
     # Load structures
-    reactant, product = load_xyz(reaction_dir)
+    if len(fixed) > 0:
+        reactant, product = load_xyz_fixed(reaction_dir, fixed=fixed_atoms)
+    else:
+        reactant, product = load_xyz(reaction_dir)
     with open(os.path.join(reaction_dir, "chg")) as f:
         chg = int(f.read())
     with open(os.path.join(reaction_dir, "mult")) as f:
@@ -150,6 +171,19 @@ def run_fsm(
         string.interpolate(outdir)
         return
 
+    def parse_indices(text):
+        indices = []
+        for part in text.split(','):
+            part = part.strip()
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                indices.extend(range(start, end + 1))
+            else:
+                indices.append(int(part))
+        return np.array(indices, dtype=int) - 1
+
+    fixed_atoms = parse_indices(fixed)
+
     optimizer: Optimizer
     # Choose optimizer
     if optcoords == "cart":
@@ -166,7 +200,6 @@ def run_fsm(
         string.write(outdir)
 
     print(f"Gradient calls: {string.ngrad}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -205,6 +238,7 @@ if __name__ == "__main__":
         default=HERE / "pre_trained_gnns/schnet_fine_tuned.ckpt",
         help="Checkpoint for calculator",
     )
+    parser.add_argument("--fixed", type=str, default="", help="Fixed atoms")
     parser.add_argument("--chg", type=int, default=0, help="Charge of the system")
     parser.add_argument("--mult", type=int, default=1, help="Multiplicity of the system")
     parser.add_argument("--nt", type=int, default=1, help="Number of threads for the calculator")
