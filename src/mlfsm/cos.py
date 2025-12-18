@@ -17,6 +17,7 @@ from mlfsm.geom import (
     distance,
     normalize,
     project_trans_rot,
+    project_trans_rot_fixed,
 )
 from mlfsm.interp import LST, RIC, Linear
 from mlfsm.utils import float_check
@@ -294,9 +295,20 @@ class FreezingString:
         energy = np.array(self.r_energy + self.p_energy[::-1])
         energy = energy - energy.min()  # now will be in just eV
 
+        # check for fixed atoms
+        c = path[0].constraints
+        if len(c) > 0:
+            fixed = True
+            fixed_atoms = c[0].get_indices()
+        else:
+            fixed = False
+
         with outfile.open("w") as f:
             for i, atoms in enumerate(path):
-                _, xyz = project_trans_rot(string[0], string[i])
+                if fixed:
+                    _, xyz = project_trans_rot_fixed(string[0], string[i], fixed=fixed_atoms)
+                else:
+                    _, xyz = project_trans_rot(string[0], string[i])
                 xyz = xyz.reshape(-1, 3)
                 f.write(f"{self.natoms}\n")
                 f.write(f"{s[i]:.5f} {energy[i]:.3f}\n")
