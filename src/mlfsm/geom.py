@@ -54,6 +54,27 @@ def project_trans_rot(
     return a.flatten(), (b @ R - t).flatten()
 
 
+def project_trans_rot_fixed(
+    a: NDArray[np.floating], b: NDArray[np.floating], fixed: NDArray[int],
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Minimizes distance between structures a and b by minimizing rotation and translation."""
+    # Calculate rotation matrix based on fixed atoms
+    a_fixed = a[fixed]
+    b_fixed = b[fixed]  
+    centroid_a = np.mean(a_fixed, axis=0, keepdims=True)
+    centroid_b = np.mean(b_fixed, axis=0, keepdims=True)
+    A = a_fixed - centroid_a
+    B = b_fixed - centroid_b
+    H = B.T @ A
+    U, _S, Vt = np.linalg.svd(H)
+    R = U @ Vt
+    if np.linalg.det(R) < 0:
+        U[:, -1] *= -1
+        R = U @ Vt
+    t = centroid_b @ R - centroid_a
+    return a.flatten(), (b @ R - t).flatten()
+
+
 def generate_inertia_I(X: NDArray[np.floating]) -> NDArray[np.floating]:
     """Compute the moment of inertia tensor for a set of 3D coordinates X."""
     I = np.zeros((3, 3))
