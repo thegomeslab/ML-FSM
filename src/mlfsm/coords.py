@@ -162,9 +162,10 @@ class Cartesian(Coordinates):
         coords = {}
         natoms = len(self.atoms1.numbers)
         for i in range(natoms):
-            coords[f"cartx_{i}"] = CartesianX(i, w=1.0)
-            coords[f"carty_{i}"] = CartesianY(i, w=1.0)
-            coords[f"cartz_{i}"] = CartesianZ(i, w=1.0)
+            if i not in self.fixed_atoms:
+                coords[f"cartx_{i}"] = CartesianX(i, w=1.0)
+                coords[f"carty_{i}"] = CartesianY(i, w=1.0)
+                coords[f"cartz_{i}"] = CartesianZ(i, w=1.0)
         return coords
 
 
@@ -297,6 +298,19 @@ class Redundant(Coordinates):
         xyzb = xyz * angs_to_bohr
         _frags, conn, conn_frag, conn_frag_aux, conn_hbond = self.connectivity(atoms)
         natoms = len(atoms)
+
+        # remove fixed atoms from connectivity graph to prevent define coords with them
+        c = atoms.constraints
+        if len(c) > 0:
+            fixed_atoms = c[0].get_indices()
+        else:
+            fixed_atoms = np.array([])
+
+        for i in fixed_atoms:
+            conn[i, :] = conn[:, i] = 0
+            conn_frag[i, :] = conn_frag[:, i] = 0
+            conn_frag_aux[i, :] = conn_frag_aux[:, i] = 0
+            conn_hbond[i, :] = conn_hbond[:, i] = 0
 
         total_conn = (conn + conn_frag + conn_hbond) > 0
 
