@@ -18,9 +18,10 @@ Only the selected calculator needs to be installed in the Python environment.
 import argparse
 import os
 import shutil
-import numpy as np
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from mlfsm.cos import FreezingString
 from mlfsm.opt import CartesianOptimizer, InternalsOptimizer, Optimizer
@@ -78,10 +79,10 @@ def run_fsm(
         if text is None or text.strip() == "":
             return np.array([], dtype=int)
         indices = []
-        for part in text.split(','):
-            part = part.strip()
-            if '-' in part:
-                start, end = map(int, part.split('-'))
+        for part_raw in text.split(","):
+            part = part_raw.strip()
+            if "-" in part:
+                start, end = map(int, part.split("-"))
                 indices.extend(range(start, end + 1))
             else:
                 indices.append(int(part))
@@ -171,7 +172,6 @@ def run_fsm(
         string.interpolate(outdir)
         return
 
-
     optimizer: Optimizer
     # Choose optimizer
     if optcoords == "cart":
@@ -188,6 +188,7 @@ def run_fsm(
         string.write(outdir)
 
     print(f"Gradient calls: {string.ngrad}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -226,7 +227,9 @@ if __name__ == "__main__":
         default=HERE / "pre_trained_gnns/schnet_fine_tuned.ckpt",
         help="Checkpoint for calculator",
     )
-    parser.add_argument("--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-13 fixes the first 12 atoms")
+    parser.add_argument(
+        "--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-13 fixes the first 12 atoms"
+    )
     parser.add_argument("--chg", type=int, default=0, help="Charge of the system")
     parser.add_argument("--mult", type=int, default=1, help="Multiplicity of the system")
     parser.add_argument("--nt", type=int, default=1, help="Number of threads for the calculator")

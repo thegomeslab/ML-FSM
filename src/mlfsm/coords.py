@@ -34,6 +34,11 @@ class Coordinates:
     def __init__(self, atoms1: Atoms, atoms2: Optional[Atoms] = None, verbose: bool = False) -> None:
         self.atoms1 = atoms1
         self.atoms2 = atoms2
+        c = atoms1.constraints  # constraint indicies must be identical between R&P therefor only one is needed
+        if len(c) > 0:
+            self.fixed_atoms = c[0].get_indices()
+        else:
+            self.fixed_atoms = np.array([])
         self.coords = self.construct()
         self.keys = list(self.coords.keys())
         self.verbose = verbose
@@ -300,13 +305,7 @@ class Redundant(Coordinates):
         natoms = len(atoms)
 
         # remove fixed atoms from connectivity graph to prevent define coords with them
-        c = atoms.constraints
-        if len(c) > 0:
-            fixed_atoms = c[0].get_indices()
-        else:
-            fixed_atoms = np.array([])
-
-        for i in fixed_atoms:
+        for i in self.fixed_atoms:
             conn[i, :] = conn[:, i] = 0
             conn_frag[i, :] = conn_frag[:, i] = 0
             conn_frag_aux[i, :] = conn_frag_aux[:, i] = 0

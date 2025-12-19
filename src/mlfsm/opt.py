@@ -85,7 +85,7 @@ class CartesianOptimizer(Optimizer):
         proj = generate_project_rt_tan(xyz.reshape(-1, 3), tangent)
         grads = -1 * atoms.get_forces()  # convert forces to grad
         for i in fixed_atoms:
-            grads[i] = 0.
+            grads[i] = 0.0
         grads = grads.flatten()
         energy = atoms.get_potential_energy()
         pgrads = proj @ grads
