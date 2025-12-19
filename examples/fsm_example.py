@@ -171,18 +171,6 @@ def run_fsm(
         string.interpolate(outdir)
         return
 
-    def parse_indices(text):
-        indices = []
-        for part in text.split(','):
-            part = part.strip()
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                indices.extend(range(start, end + 1))
-            else:
-                indices.append(int(part))
-        return np.array(indices, dtype=int) - 1
-
-    fixed_atoms = parse_indices(fixed)
 
     optimizer: Optimizer
     # Choose optimizer
@@ -238,7 +226,7 @@ if __name__ == "__main__":
         default=HERE / "pre_trained_gnns/schnet_fine_tuned.ckpt",
         help="Checkpoint for calculator",
     )
-    parser.add_argument("--fixed", type=str, default="", help="Fixed atoms")
+    parser.add_argument("--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-13 fixes the first 12 atoms")
     parser.add_argument("--chg", type=int, default=0, help="Charge of the system")
     parser.add_argument("--mult", type=int, default=1, help="Multiplicity of the system")
     parser.add_argument("--nt", type=int, default=1, help="Number of threads for the calculator")
