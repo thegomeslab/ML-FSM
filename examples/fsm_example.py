@@ -228,7 +228,7 @@ if __name__ == "__main__":
         help="Checkpoint for calculator",
     )
     parser.add_argument(
-        "--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-13 fixes the first 12 atoms"
+        "--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-12 fixes the first 12 atoms"
     )
     parser.add_argument("--chg", type=int, default=0, help="Charge of the system")
     parser.add_argument("--mult", type=int, default=1, help="Multiplicity of the system")
