@@ -166,14 +166,8 @@ class Cartesian(Coordinates):
         """Build Cartesian coordinate representation."""
         coords = {}
         natoms = len(self.atoms1.numbers)
-        c = self.atoms1.constraints
-        if len(c) > 0:
-            fixed_atoms = c[0].get_indices()
-        else:
-            fixed_atoms = np.array([])
-
         for i in range(natoms):
-            if i not in fixed_atoms:
+            if i not in self.fixed_atoms:
                 coords[f"cartx_{i}"] = CartesianX(i, w=1.0)
                 coords[f"carty_{i}"] = CartesianY(i, w=1.0)
                 coords[f"cartz_{i}"] = CartesianZ(i, w=1.0)
