@@ -75,10 +75,18 @@ class CartesianOptimizer(Optimizer):
         -------
             tuple[float, ndarray]: Energy and projected gradient.
         """
+        c = atoms.constraints
+        if len(c) > 0:
+            fixed_atoms = c[0].get_indices()
+        else:
+            fixed_atoms = np.array([], dtype=int)
         atoms.set_positions(xyz.reshape(-1, 3))
         atoms.calc = self.calc
         proj = generate_project_rt_tan(xyz.reshape(-1, 3), tangent)
-        grads = -1 * atoms.get_forces().flatten()  # convert forces to grad
+        grads = -1 * atoms.get_forces()  # convert forces to grad
+        for i in fixed_atoms:
+            grads[i] = 0.0
+        grads = grads.flatten()
         energy = atoms.get_potential_energy()
         pgrads = proj @ grads
         return energy, pgrads
