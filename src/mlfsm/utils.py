@@ -11,6 +11,8 @@ from numpy.typing import NDArray
 
 from mlfsm.geom import project_trans_rot, project_trans_rot_fixed
 
+assert isinstance(atoms,Atoms)
+
 
 def load_xyz(reaction_dir: Path | str) -> tuple[Atoms, Atoms]:
     """
