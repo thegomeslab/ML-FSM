@@ -26,6 +26,7 @@ jobs:
         with:
           pixi-version: v0.48.0
           cache: true
+          locked: false
 
       - run: pixi run fmt
       - run: pixi run lint
