@@ -20,6 +20,6 @@ Install from source
 -------------------
 .. code-block:: bash
 
-   git clone https://github.com/jonmarks12/ML-FSM.git
+   git clone https://github.com/thegomeslab/ML-FSM.git
    cd ML-FSM
    pip install -e .
