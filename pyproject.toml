@@ -2,7 +2,7 @@
 name = "mlfsm"
 description = "python implementation of the Freezing String Method"
 license = {file = "LICENSE"}
-version = "1.0.0"
+version = "1.0.1"
 readme = "README.md"
 keywords = []
 authors = [
@@ -19,9 +19,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jonmarks12/mlfsm"
-Repository = "https://github.com/jonmarks12/mlfsm"
-Issues = "https://github.com/jonmarks12/mlfsm/issues"
+Homepage = "https://github.com/thegomeslab/ML-FSM"
+Repository = "https://github.com/thegomeslab/ML-FSM"
+Issues = "https://github.com/thegomeslab/ML-FSM/issues"
 
 [tool.pixi.project]
 channels = ["conda-forge", "pytorch"]
