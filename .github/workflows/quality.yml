@@ -1,0 +1,21 @@
+# .github/workflows/quality.yml
+name: Code Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - CI
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: v0.48.0
+      - run: pixi run fmt --check
+      - run: pixi run lint
+      - run: pixi run types
