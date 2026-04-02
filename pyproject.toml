@@ -65,7 +65,7 @@ pillow = "<11.3.0"
 sphinx = "*"
 sphinx-autodoc-typehints = "*"
 numpydoc = "*"
-sphinx-rtd-theme = "*"
+furo = "*"
 myst-parser = "*"
 
 [tool.ruff]
