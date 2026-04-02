@@ -3,12 +3,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../mlfsm"))
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "ML-FSM"
 copyright = "2025, Jonah Marks and Joe Gomes"
@@ -16,12 +13,14 @@ author = "Jonah Marks and Joe Gomes"
 release = "1.0.1"
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.autodoc.typehints",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
     "numpydoc",
     "myst_parser",
 ]
@@ -31,26 +30,17 @@ numpydoc_show_class_members = False
 templates_path = ["_templates"]
 exclude_patterns: list[str] = []
 
+# -- Intersphinx mapping -----------------------------------------------------
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy", None),
+    "ase": ("https://wiki.fysik.dtu.dk/ase", None),
+}
 
-html_static_path = ["_static"]
+# -- Autodoc settings --------------------------------------------------------
 
-# Theme
-html_theme = "sphinx_rtd_theme"  # or 'furo' for a modern look
-
-# Extensions
-extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",  # for Google/NumPy docstrings
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.mathjax",
-]
-
-# Autodoc settings
 autodoc_default_options = {
     "members": True,
     "member-order": "bysource",
@@ -59,11 +49,26 @@ autodoc_default_options = {
     "exclude-members": "__weakref__",
 }
 
-# Autosummary
+autodoc_typehints = "description"
 autosummary_generate = True
 
-# Napoleon settings (if using Google/NumPy docstrings)
+# -- Napoleon settings -------------------------------------------------------
+
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = False
 napoleon_include_private_with_doc = False
+
+# -- HTML output -------------------------------------------------------------
+
+html_theme = "furo"
+
+html_theme_options = {
+    "sidebar_hide_name": False,
+    "navigation_with_keys": True,
+    "top_of_page_button": "edit",
+}
+
+html_static_path = ["_static"]
+
+html_title = "ML-FSM"
