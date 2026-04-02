@@ -3,10 +3,6 @@ API Reference
 
 This section contains the complete API reference for all modules in ``mlfsm``.
 
-.. contents:: Modules
-   :local:
-   :depth: 1
-
 ----
 
 Core Modules

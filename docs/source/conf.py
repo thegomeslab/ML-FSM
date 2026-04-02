@@ -69,6 +69,4 @@ html_theme_options = {
     "top_of_page_button": "edit",
 }
 
-html_static_path = ["_static"]
-
 html_title = "ML-FSM"

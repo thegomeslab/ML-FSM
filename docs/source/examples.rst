@@ -1,10 +1,6 @@
 Examples
 ========
 
-.. contents::
-   :local:
-   :depth: 1
-
 Quick Start — EMT Calculator
 -----------------------------
 
