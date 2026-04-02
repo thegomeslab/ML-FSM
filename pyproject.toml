@@ -43,7 +43,7 @@ lint = { cmd="ruff check . --fix" }
 types = { cmd="mypy ." }
 test = { cmd="pytest" }
 coverage = { cmd = "pytest --cov=src/mlfsm --cov-report=xml" }
-docs = { cmd="sphinx-build -b html docs/source docs/build" }
+docs = { cmd="python -m sphinx docs/source docs/build" }
 all = { depends-on = ["fmt", "lint", "types", "test", "docs"] }
 
 
