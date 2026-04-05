@@ -6,7 +6,9 @@ Quick Start — EMT Calculator
 
 The simplest way to test ML-FSM is with ASE's built-in EMT calculator.
 The example below runs a full FSM calculation on the Diels-Alder reaction
-included in the ``examples/data/`` directory.
+included in the ``examples/data/`` directory. Note that the EMT calculator
+is only for quick tests and demonstrations and should not be used in
+serious TS searches.
 
 .. code-block:: python
 
