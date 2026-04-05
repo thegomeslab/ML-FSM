@@ -2,13 +2,19 @@
 
 Thank you for your interest in contributing to ML-FSM! This document outlines the process for contributing and how to set up your development environment.
 
+## Project Maintainers
+
+ML-FSM is primarily developed and maintained at the [Gomes Lab](https://github.com/thegomeslab) at the University of Iowa. The package was co-created by Jonah Marks (now at AstraZeneca), who remains a maintainer, with additional contributions from Jonathon Vandezande.
+
+For questions, bug reports, or to discuss potential contributions, please contact:
+
+**Joe Gomes** — joe-gomes@uiowa.edu
+
 ## Before You Open a Pull Request
 
 **Please open an issue or reach out before starting significant work.**
 
-If you have a bug report, feature request, or want to propose a change, start by [opening an issue](https://github.com/thegomeslab/ML-FSM/issues) on GitHub. For questions or to discuss a contribution before diving in, you can also contact the maintainer directly:
-
-**Joe Gomes** — joe-gomes@uiowa.edu
+If you have a bug report, feature request, or want to propose a change, start by [opening an issue](https://github.com/thegomeslab/ML-FSM/issues) on GitHub. For questions or to discuss a contribution before diving in, you can also contact Joe directly at the address above.
 
 This helps avoid duplicated effort and ensures your contribution aligns with the project's direction before you invest time in it.
 
