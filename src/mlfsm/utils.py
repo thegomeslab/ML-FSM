@@ -1,7 +1,7 @@
 """Utility functions for reading input and checking numeric types."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from ase import Atoms
@@ -40,8 +40,8 @@ def load_xyz(reaction_dir: Path | str) -> tuple[Atoms, Atoms]:
     if not xyz.is_file():
         raise Exception(f"Input file {xyz} not found.")
     atoms = read(xyz, format="xyz", index=":")
-    reactant = atoms[0]
-    product = atoms[-1]
+    reactant = cast("Atoms", atoms[0])
+    product = cast("Atoms", atoms[-1])
     r_xyz, p_xyz = project_trans_rot(reactant.get_positions(), product.get_positions())
     reactant.set_positions(r_xyz.reshape(-1, 3))
     product.set_positions(p_xyz.reshape(-1, 3))
@@ -81,8 +81,8 @@ def load_xyz_fixed(reaction_dir: Path | str, fixed: NDArray[np.integer[Any]]) ->
     if not xyz.is_file():
         raise Exception(f"Input file {xyz} not found.")
     atoms = read(xyz, format="xyz", index=":")
-    reactant = atoms[0]
-    product = atoms[-1]
+    reactant = cast("Atoms", atoms[0])
+    product = cast("Atoms", atoms[-1])
     if len(fixed) == 0:
         r_xyz, p_xyz = project_trans_rot(reactant.get_positions(), product.get_positions())
         reactant.set_positions(r_xyz.reshape(-1, 3))

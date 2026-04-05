@@ -90,7 +90,7 @@ class LST(Interpolate):
 
     References
     ----------
-    Halgren, T. A.; Lipscomb, W. N. *Chem. Phys. Lett.* **1977**, *49*, 225–232.
+    Halgren, T. A.; Lipscomb, W. N. *Chem. Phys. Lett.* **1977**, *49*, 225-232.
     """
 
     def obj(

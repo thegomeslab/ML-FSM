@@ -61,4 +61,3 @@ have been tested and are supported out of the box via ``examples/fsm_example.py`
    * - **Q-Chem**
      - See `Q-Chem <https://www.q-chem.com>`_
      - File-based I/O; requires a Q-Chem license
-
