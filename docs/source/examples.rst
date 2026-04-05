@@ -136,38 +136,28 @@ benchmark sets:
 
 .. list-table::
    :header-rows: 1
-   :widths: 10 55 35
+   :widths: 10 55
 
    * - Folder
      - Reaction
-     - Benchmark set
    * - ``01_formaldehyde``
      - H₂CO → H₂ + CO
-     - Sharada / Baker / Birkholz
    * - ``02_isocyanate_water``
      - Isocyanate + H₂O → carbamic acid
-     - —
    * - ``03_ethanal``
      - Acetaldehyde keto–enol tautomerism
-     - Sharada / Baker
    * - ``04_ethane_dehydrogenation``
      - CH₃CH₃ → CH₂CH₂ + H₂
-     - Sharada / Baker
    * - ``05_bicyclobutane``
      - Bicyclo[1.1.0]butane → *trans*-butadiene
-     - Sharada / Baker
    * - ``06_diels_alder``
      - Parent Diels–Alder cycloaddition
-     - Sharada / Baker / Birkholz
    * - ``07_hexadiene``
      - *cis,cis*-2,4-hexadiene → 3,4-dimethylcyclobutene
-     - Sharada
    * - ``08_alanine``
      - Alanine dipeptide rearrangement
-     - Sharada
    * - ``09_proton``
      - Proton transfer
-     - —
 
 Each directory contains ``initial.xyz`` (reactant + product frames), ``chg``
 (molecular charge), and ``mult`` (spin multiplicity).
