@@ -78,20 +78,6 @@ including rigid-body alignment and translation/rotation projection.
 
 ----
 
-Atom Mapping (``mlfsm.atom_mapping``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Determines a consistent atom ordering between reactant and product using maximum
-common substructure (MCS) matching followed by Hungarian assignment for
-bond-breaking/forming atoms.
-
-.. automodule:: mlfsm.atom_mapping
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-----
-
 Utilities (``mlfsm.utils``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
