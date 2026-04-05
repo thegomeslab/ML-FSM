@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.1] - 2025
-
+## [1.0.1] - 2026
+### Added
+- Fixed atoms functionality
+- Ability to directly input stepsize
 ### Fixed
 - Minor bug fixes and stability improvements
 
