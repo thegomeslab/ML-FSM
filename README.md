@@ -7,8 +7,8 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/thegomeslab/ML-FSM/test.yml?branch=main&logo=github-actions)](https://github.com/jonmarks12/ML-FSM/actions/)
 [![Documentation Status](https://readthedocs.org/projects/ml-fsm/badge/?version=latest)](https://ml-fsm.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/thegomeslab/ML-FSM/branch/main/graph/badge.svg)](https://codecov.io/gh/thegomeslab/ML-FSM)
-
-
+[![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen)](./CONTRIBUTING.md)
+[![Changelog](https://img.shields.io/badge/changelog-available-blue)](./CHANGELOG.md)
 
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/thegomeslab/ML-FSM/blob/dev/examples/FSM_Colab_AIMNet2.ipynb)
@@ -65,6 +65,12 @@ For projects referencing algorithmic improvements to the FSM please cite:
 For projects using the FSM with ML-based potentials please cite:
 
 >Marks, J., & Gomes, J. (2025). Efficient Transition State Searches by Freezing String Method with Graph Neural Network Potentials. http://arxiv.org/abs/2501.06159
+
+## Contributing
+
+Contributions are welcome! Please read the [Contributing Guide](./CONTRIBUTING.md) before opening a pull request. We ask that you open an issue or reach out to the maintainer first to discuss proposed changes.
+
+See the [Changelog](./CHANGELOG.md) for a history of notable changes.
 
 ## License
 
