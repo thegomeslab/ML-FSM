@@ -21,6 +21,7 @@ Install from PyPI
 
 Install from Source
 -------------------
+To access the most recent features and bug fixes, install from source:
 
 .. code-block:: bash
 
@@ -42,19 +43,20 @@ have been tested and are supported out of the box via ``examples/fsm_example.py`
      - Install
      - Notes
    * - **AIMNet2**
-     - ``pip install aimnet2ase``
-     - Requires a model checkpoint (``.jpt``)
-   * - **MACE-OFF**
+     - .. code-block:: bash
+
+          git clone https://github.com/isayevlab/AIMNet2.git
+          cd AIMNET2
+          pip install -e .
+     - AIMNet2 pre-trained model.
+   * - **MACE**
      - ``pip install mace-torch``
      - Pre-trained models available via ``mace_off``
    * - **FAIR UMA**
      - ``pip install fairchem-core``
      - Meta's Universal Model for Atoms
-   * - **TensorNet**
-     - ``pip install torchmd-net``
-     - Requires a pre-trained ``.ckpt`` checkpoint
    * - **xTB**
-     - ``pip install xtb-python``
+     - ``mamba install xtb-python``
      - GFN2-xTB semiempirical method
    * - **Q-Chem**
      - See `Q-Chem <https://www.q-chem.com>`_
