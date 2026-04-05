@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Fixed atoms functionality
 - Ability to directly input stepsize
+### Changed
+- Moved ML-FSM repo from @jonmarks12 to @thegomeslab
+- Large documentation update, changed theme to furo, updated docstrings, added examples, various other improvements
 ### Fixed
 - Minor bug fixes and stability improvements
 
