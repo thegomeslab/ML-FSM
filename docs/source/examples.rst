@@ -95,22 +95,22 @@ Three interpolation methods are available via the ``interp_method`` argument:
      - Plain Cartesian linear interpolation. Fast but can produce unphysical
        structures for large conformational changes.
 
-Using an ML Calculator (AIMNet2)
-----------------------------------
+Using an ML Calculator (UMA Small 1.2)
+--------------------------------------
 
 ML-FSM is calculator-agnostic — any ASE-compatible calculator can be used as
-the gradient provider. Below is a minimal example using AIMNet2.
+the gradient provider. Below is a minimal example using the UMA Small 1.2 model.
 
 .. code-block:: python
 
     import torch
-    from aimnet2ase import AIMNet2Calculator
+    from fairchem.core import FAIRChemCalculator, pretrained_mlip
     from mlfsm.utils import load_xyz
     from mlfsm.cos import FreezingString
     from mlfsm.opt import CartesianOptimizer
 
-    model = torch.jit.load("aimnet2_wb97m-d3_0.jpt")
-    calc = AIMNet2Calculator(model)
+    predictor = pretrained_mlip.get_predict_unit("uma-s-1p2")
+    calc = FAIRChemCalculator(predictor, task_name="omol")
 
     reactant, product = load_xyz("examples/data/06_diels_alder")
     fsm = FreezingString(reactant, product, nnodes_min=9, interp_method="ric")
@@ -124,8 +124,9 @@ the gradient provider. Below is a minimal example using AIMNet2.
         fsm.optimize(optimizer)
         fsm.write(outdir)
 
-See ``examples/FSM_Colab_AIMNet2.ipynb`` for a complete worked example
-including TS refinement with ASE.
+Google Colab Tutorial
+---------------------
+See ``examples/FSM_Colab_AIMNet2.ipynb`` for an Colab notebook using AIMNet2.
 
 Example Reactions
 -----------------
