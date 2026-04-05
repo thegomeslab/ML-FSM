@@ -62,5 +62,3 @@ have been tested and are supported out of the box via ``examples/fsm_example.py`
      - See `Q-Chem <https://www.q-chem.com>`_
      - File-based I/O; requires a Q-Chem license
 
-These packages are **not** required to use the core FSM functionality — the
-built-in ASE EMT calculator is sufficient for testing.
