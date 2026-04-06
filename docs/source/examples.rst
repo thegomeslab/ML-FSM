@@ -103,7 +103,7 @@ the gradient provider. Below is a minimal example using the UMA Small 1.2 model.
 
 .. code-block:: python
 
-    import torch
+    from pathlib import Path    
     from fairchem.core import FAIRChemCalculator, pretrained_mlip
     from mlfsm.utils import load_xyz
     from mlfsm.cos import FreezingString
