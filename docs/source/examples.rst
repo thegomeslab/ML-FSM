@@ -157,7 +157,7 @@ benchmark sets:
    * - ``08_alanine``
      - Alanine dipeptide rearrangement
    * - ``09_proton``
-     - Proton transfer
+     - Acid zeolite proton migration
 
 Each directory contains ``initial.xyz`` (reactant + product frames), ``chg``
 (molecular charge), and ``mult`` (spin multiplicity).

@@ -10,7 +10,6 @@ Requirements
 - `SciPy <https://scipy.org>`_ ≥ 1.13
 - `geomeTRIC <https://github.com/leeping/geomeTRIC>`_ ≥ 1.0.0
 - `NetworkX <https://networkx.org>`_ ≥ 3.0
-- `RDKit <https://www.rdkit.org>`_ ≥ 2022.09
 
 Install from PyPI
 -----------------
