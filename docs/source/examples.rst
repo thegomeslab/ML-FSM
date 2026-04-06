@@ -131,8 +131,7 @@ See ``examples/FSM_Colab_AIMNet2.ipynb`` for an Colab notebook using AIMNet2.
 Example Reactions
 -----------------
 
-The ``examples/data/`` directory contains nine reactions from published
-benchmark sets:
+The ``examples/data/`` directory contains nine test reactions:
 
 .. list-table::
    :header-rows: 1
