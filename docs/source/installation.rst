@@ -28,11 +28,11 @@ To access the most recent features and bug fixes, install from source:
    cd ML-FSM
    pip install -e .
 
-Optional: ML Calculator Dependencies
+Optional: Calculator Dependencies
 --------------------------------------
 
-ML-FSM works with any ASE-compatible calculator. The following ML potentials
-have been tested and are supported out of the box via ``examples/fsm_example.py``:
+ML-FSM works with any ASE-compatible calculator including traditional QM and semi-empirical potential energy surfaces. 
+The following potentials have been tested and are supported out of the box via ``examples/fsm_example.py``:
 
 .. list-table::
    :header-rows: 1
