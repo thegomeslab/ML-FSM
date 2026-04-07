@@ -27,7 +27,50 @@ logger = logging.getLogger(__name__)
 
 
 class FreezingString:
-    """Implements the Freezing String Method."""
+    """Implements the Freezing String Method (FSM) for transition state guess generation.
+
+    The FSM grows two strings from the reactant and product endpoints toward each
+    other. At each iteration a new frontier node is placed by taking a step along
+    an interpolated path, optimized perpendicular to the local tangent direction,
+    and then frozen. The highest-energy node at convergence serves as the TS guess.
+
+    Parameters
+    ----------
+    reactant : ase.Atoms
+        Reactant geometry with an attached ASE calculator (optional at
+        construction; required before calling :meth:`optimize`).
+    product : ase.Atoms
+        Product geometry. Must have the same atom ordering as ``reactant``.
+    nnodes_min : int, optional
+        Nominal number of string nodes used to determine the interpolation
+        step size.  The actual node count may differ slightly depending on
+        the path arc length. Default is 10.
+    interp_method : {"ric", "lst", "cart"}
+        Interpolation scheme used to generate new frontier nodes:
+
+        * ``"ric"`` — redundant internal coordinates (recommended).
+        * ``"lst"`` — linear synchronous transit.
+        * ``"cart"`` — plain Cartesian linear interpolation.
+    ninterp : int, optional
+        Number of points used to discretize the dense interpolated path from
+        which frontier nodes are selected. Default is 100.
+    stepsize : float, optional
+        If > 0, sets the Cartesian step size (Å) explicitly and ignores
+        ``nnodes_min``. The step size is measured along the Cartesian
+        arc length of the initial linear interpolation. Default is 0.0
+        (derive step size from ``nnodes_min``).
+
+    Attributes
+    ----------
+    r_string, p_string : list[ase.Atoms]
+        Growing strings from the reactant and product ends.
+    r_energy, p_energy : list[float or None]
+        Energies at each node (``None`` until evaluated).
+    growing : bool
+        ``True`` while the two string ends have not yet converged.
+    ngrad : int
+        Total number of gradient evaluations performed so far.
+    """
 
     def __init__(
         self,
@@ -89,7 +132,16 @@ class FreezingString:
         self.coordsobj: Any = None
 
     def interpolate(self, outdir: Path | str) -> None:
-        """Generate and write interpolated string between current endpoints."""
+        """Generate and write the dense interpolated path between current frontier nodes.
+
+        Writes a single XYZ file named ``interp_<iteration>.xyz`` to ``outdir``.
+        Each frame comment line contains the cumulative arc-length value.
+
+        Parameters
+        ----------
+        outdir : path-like
+            Directory in which to write the interpolated path XYZ file.
+        """
         outfile = Path(outdir) / f"interp_{self.iteration:02d}.xyz"
 
         r_atoms = self.r_string[-1]
@@ -117,7 +169,14 @@ class FreezingString:
                     f.write(f"{atom} {x:.8f} {y:.8f} {z:.8f}\n")
 
     def grow(self) -> None:
-        """Grow the string by adding nodes from each end."""
+        """Grow the string by adding one new frontier node to each end.
+
+        Interpolates between the current frontier nodes, selects positions
+        one step-size inward from each end, and appends those nodes to
+        ``r_string`` and ``p_string`` with ``fix=False``. Sets
+        ``self.growing = False`` when the two frontiers are within one
+        step-size of each other.
+        """
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
@@ -238,7 +297,19 @@ class FreezingString:
             self.p_nnodes = len(self.p_string)
 
     def optimize(self, optimizer: Any) -> None:
-        """Relax unfixed nodes on the hyperplane orthogonal to the local tangent direction."""
+        """Relax all unfixed frontier nodes perpendicular to the local tangent.
+
+        Evaluates energies for endpoint nodes that have not yet been computed,
+        then runs the optimizer on every unfixed node. After optimization each
+        node is frozen (``fix=True``) so it will not move in subsequent
+        iterations.
+
+        Parameters
+        ----------
+        optimizer : CartesianOptimizer or InternalsOptimizer
+            Optimizer instance whose ``calc`` attribute provides energies and
+            gradients via the ASE calculator interface.
+        """
         self.iteration += 1
         optimizer.coordsobj = self.coordsobj
 
@@ -284,7 +355,18 @@ class FreezingString:
             self.growing = False
 
     def write(self, outdir: Path | str) -> None:
-        """Write current string geometries and relative energies to an XYZ file."""
+        """Write the current string geometries and relative energies to an XYZ file.
+
+        Writes ``vfile_<iteration>.xyz`` to ``outdir``. Frame comment lines
+        contain the cumulative arc-length and relative energy (eV). On the
+        final iteration (``growing=False``) also writes the total gradient
+        count to ``ngrad.txt``.
+
+        Parameters
+        ----------
+        outdir : path-like
+            Directory in which to write output files.
+        """
         outdir = Path(outdir)
         outfile = outdir / f"vfile_{self.iteration:02d}.xyz"
         gradfile = outdir / "ngrad.txt"

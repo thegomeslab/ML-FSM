@@ -1,5 +1,5 @@
 sphinx
 sphinx-autodoc-typehints
 numpydoc
-sphinx-rtd-theme
+furo
 myst-parser

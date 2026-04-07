@@ -37,7 +37,7 @@ python examples/fsm_example.py data/sharada/06_diels_alder/ --calculator emt
 ```
 Note the EMT calculator should only be used for quick demonstrations/tests.
 
-## Tutorials 
+## Tutorials
 
 1. A Google Colab notebook example is available at:
 ```
@@ -51,11 +51,11 @@ The script:
 ```
 examples/fsm_example.py
 ```
-is a comprehensive and flexible tool that supports most ML-FSM functionality. 
+is a comprehensive and flexible tool that supports most ML-FSM functionality.
 
 Note: Users are responsible for installing their desired quantum chemistry backend, current calculators supported in fsm_example.py are [AIMNet2](https://github.com/isayevlab/AIMNet2), [MACEOFF23](https://github.com/ACEsuit/mace-off), [FAIR UMA](https://github.com/facebookresearch/fairchem), [TensorNet](https://github.com/torchmd/torchmd-net), [xTB](https://github.com/grimme-lab/xtb), [QChem](https://www.q-chem.com).
 
-3. Some ML potentials do not offer a native ASE interface. To accommodate these, a minimal example of custom ```ase.Calculator``` wrappers is provided in the ```examples/``` folder. This serves as templates for integrating arbitrary NNPs with ML-FSM   
+3. Some ML potentials do not offer a native ASE interface. To accommodate these, a minimal example of custom ```ase.Calculator``` wrappers is provided in the ```examples/``` folder. This serves as templates for integrating arbitrary NNPs with ML-FSM
 ## Usage
 For projects referencing algorithmic improvements to the FSM please cite:
 

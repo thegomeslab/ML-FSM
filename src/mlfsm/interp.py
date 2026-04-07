@@ -18,7 +18,24 @@ deg_to_rad = np.pi / 180.0
 
 @dataclass
 class Interpolate:
-    """Abstract base class for interpolation schemes between molecular geometries."""
+    """Abstract base class for interpolation schemes between molecular geometries.
+
+    Parameters
+    ----------
+    atoms1 : ase.Atoms
+        Starting (reactant-side) geometry.
+    atoms2 : ase.Atoms
+        Ending (product-side) geometry.
+    ninterp : int
+        Number of discrete frames to generate along the interpolated path.
+    gtol : float, optional
+        Gradient tolerance passed to the L-BFGS-B minimizer (used by
+        :class:`LST`). Default is 1e-4.
+    return_q : bool, optional
+        If ``True``, return interpolated internal coordinate vectors instead
+        of Cartesian positions. Only meaningful for :class:`RIC`. Default is
+        ``False``.
+    """
 
     atoms1: Atoms
     atoms2: Atoms
@@ -27,23 +44,31 @@ class Interpolate:
     return_q: bool = False
 
     def interpolate(self) -> NDArray[np.float32]:
-        """Abstract interpolationn routine-must be overridden."""
+        """Abstract interpolation routine — must be overridden by subclasses."""
         raise NotImplementedError
 
     def __call__(self) -> NDArray[np.float32]:
-        """Call the interpolation routine and returns interpolated geometries."""
+        """Call the interpolation routine and return interpolated geometries."""
         return self.interpolate()
 
 
 class Linear(Interpolate):
     """Linear interpolation of Cartesian coordinates.
 
-    Generates a reaction path by linearly interpolating Cartesian coordinates
-    between two endpoint geometries.
+    Generates a reaction path by linearly blending the Cartesian positions of
+    two endpoint geometries: ``(1-f)*xyz1 + f*xyz2`` for *f* in [0, 1]. Fast
+    but may produce unphysical geometries for large conformational changes.
     """
 
     def interpolate(self) -> NDArray[np.float32]:
-        """Compute linear interpolated path between two geometries."""
+        """Return linearly interpolated Cartesian path.
+
+        Returns
+        -------
+        NDArray[np.float32]
+            Array of shape ``(ninterp, natoms*3)`` with flattened Cartesian
+            coordinates for each interpolated frame.
+        """
         xyz1 = self.atoms1.get_positions()
         xyz2 = self.atoms2.get_positions()
 
@@ -56,11 +81,16 @@ class Linear(Interpolate):
 
 
 class LST(Interpolate):
-    """Linear Synchronous Transit (LST) interpolation method.
+    """Linear Synchronous Transit (LST) interpolation.
 
-    Halgren, Thomas A., and William N. Lipscomb.
-    "The synchronous transit method for determining reaction pathways and locating molecular transition states."
-    Chemical Physics Letters 49.2 (1977): 225 to 232.
+    At each interpolation point *f*, minimizes the deviation from linearly
+    interpolated pairwise interatomic distances while remaining close to the
+    Cartesian linear blend. Produces more chemically realistic geometries than
+    plain Cartesian interpolation at moderate extra cost.
+
+    References
+    ----------
+    Halgren, T. A.; Lipscomb, W. N. *Chem. Phys. Lett.* **1977**, *49*, 225-232.
     """
 
     def obj(
@@ -70,7 +100,28 @@ class LST(Interpolate):
         rab: Callable[[float], NDArray[np.floating]],
         xab: Callable[[float], NDArray[np.floating]],
     ) -> float:
-        """Objective function for LST interpolation."""
+        """Objective function minimized at each interpolation point.
+
+        Computes the weighted sum of squared deviations of pairwise distances
+        from their linearly interpolated target values, plus a small Cartesian
+        restraint to prevent rigid-body drift.
+
+        Parameters
+        ----------
+        x_c : NDArray
+            Flattened trial Cartesian coordinates.
+        f : float
+            Interpolation parameter in [0, 1].
+        rab : callable
+            Returns linearly interpolated pairwise distances at parameter *f*.
+        xab : callable
+            Returns linearly interpolated Cartesian coordinates at parameter *f*.
+
+        Returns
+        -------
+        float
+            Scalar objective value.
+        """
         x_c = x_c.reshape(-1, 3)
         rab_c = pdist(x_c)
         rab_i = rab(f)
@@ -79,7 +130,14 @@ class LST(Interpolate):
         return float((((rab_i - rab_c) ** 2) / rab_i**4).sum() + 5e-2 * ((x_i - x_c) ** 2).sum())
 
     def interpolate(self) -> NDArray[np.float32]:
-        """Generate interpolated structures using LST."""
+        """Return LST-interpolated path.
+
+        Returns
+        -------
+        NDArray[np.float32]
+            Array of shape ``(ninterp, natoms*3)`` with flattened Cartesian
+            coordinates for each frame.
+        """
         xyz1 = self.atoms1.get_positions()
         xyz2 = self.atoms2.get_positions()
         pdist_1 = pdist(xyz1)
@@ -109,14 +167,39 @@ class LST(Interpolate):
 
 @dataclass
 class RIC(Interpolate):
-    """Interpolates in redundant internal coordinates (RIC)."""
+    """Redundant internal coordinate (RIC) interpolation.
+
+    Linearly interpolates between the reactant and product geometries in the
+    space of delocalized redundant internal coordinates (bonds, angles,
+    torsions, out-of-plane bends). The interpolated frames are then
+    back-transformed to Cartesian coordinates via iterative application of the
+    Wilson B-matrix. This scheme avoids the unphysical bond compressions that
+    can occur with Cartesian interpolation for large conformational changes.
+
+    Attributes
+    ----------
+    coords : Redundant
+        The redundant internal coordinate system built from both endpoints.
+    """
 
     def __post_init__(self) -> None:
-        """Initialize the RIC interpolator."""
+        """Build the shared redundant internal coordinate system."""
         self.coords = Redundant(self.atoms1, self.atoms2, verbose=False)
 
     def interpolate(self) -> NDArray[np.float32]:
-        """Generate interpolated structures using linear interpolation in RIC."""
+        """Return RIC-interpolated path in Cartesian (or internal) coordinates.
+
+        Torsion periodicity wrapping is applied automatically when the
+        interpolation crosses the ±π boundary.
+
+        Returns
+        -------
+        NDArray[np.float32]
+            If ``return_q`` is ``False`` (default): array of shape
+            ``(ninterp, natoms*3)`` with flattened Cartesian coordinates.
+            If ``return_q`` is ``True``: array of shape ``(ninterp, n_ics)``
+            with internal coordinate values.
+        """
         xyz1 = self.atoms1.get_positions()
         xyz2 = self.atoms2.get_positions()
         q1 = self.coords.q(xyz1)  # type ignore[no-untyped-call]

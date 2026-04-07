@@ -60,7 +60,7 @@ class Coordinates:
             print(f"{name:15} = {coord.value(xyzb):15.8f}")
 
     def q(self, xyz: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Return coordinate values in from Cartesian positions."""
+        """Return internal coordinate values from Cartesian positions."""
         xyzb = xyz * angs_to_bohr
         # return np.array([coord.value(xyzb) for coord in self.coords.values()], dtype=np.float64)
         return np.fromiter((coord.value(xyzb) for coord in self.coords.values()), dtype=np.float64)
