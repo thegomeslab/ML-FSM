@@ -23,8 +23,10 @@ from typing import Any
 
 import numpy as np
 
+from mlfsm import __version__
 from mlfsm.cos import FreezingString
 from mlfsm.opt import CartesianOptimizer, InternalsOptimizer, Optimizer
+from mlfsm.output import FSMOutput
 from mlfsm.utils import load_xyz, load_xyz_fixed
 
 HERE = Path(__file__).parent
@@ -73,6 +75,10 @@ def run_fsm(
         shutil.rmtree(outdir)
 
     outdir.mkdir(parents=True, exist_ok=True)
+
+    fsm_output: FSMOutput | None = None
+    if not interpolate:
+        fsm_output = FSMOutput(outdir)
 
     # get fixed atom indices
     def parse_indices(text):
@@ -166,8 +172,18 @@ def run_fsm(
     else:
         raise ValueError(f"Unknown calculator {calculator}")
 
+    if fsm_output is not None:
+        fsm_output.write_header(__version__)
+        fsm_output.write_parameters(optcoords, interp, method, maxiter, maxls, dmax, nnodes_min, ninterp, stepsize)
+        fsm_output.write_system_info(reactant, product, chg, mult, fixed_atoms if len(fixed_atoms) > 0 else None)
+        fsm_output.write_calculator_info(calc)
+        fsm_output.write_initial_structures(reactant, product)
+
     # Initialize FSM string
-    string = FreezingString(reactant, product, nnodes_min, interp, ninterp, stepsize)
+    string = FreezingString(reactant, product, nnodes_min, interp, ninterp, stepsize, output=fsm_output)
+    if fsm_output is not None:
+        fsm_output.write_path_init(string.dist, string.stepsize, string.nnodes_min)
+
     if interpolate:
         string.interpolate(outdir)
         return
@@ -186,6 +202,10 @@ def run_fsm(
         string.grow()
         string.optimize(optimizer)
         string.write(outdir)
+
+    if fsm_output is not None:
+        fsm_output.write_final_summary(string)
+        fsm_output.close()
 
     print(f"Gradient calls: {string.ngrad}")
 

@@ -11,6 +11,8 @@ from scipy.interpolate import CubicSpline
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+    from mlfsm.output import FSMOutput
+
 from mlfsm.coords import Cartesian
 from mlfsm.geom import (
     calculate_arc_length,
@@ -80,7 +82,9 @@ class FreezingString:
         interp_method: str = "ric",
         ninterp: int = 100,
         stepsize: float = 0.0,
+        output: Optional["FSMOutput"] = None,
     ) -> None:
+        self.output = output
         self.interp: Any
         self.interp_method = interp_method
         self.nnodes_min = int(nnodes_min)
@@ -177,6 +181,9 @@ class FreezingString:
         ``self.growing = False`` when the two frontiers are within one
         step-size of each other.
         """
+        if self.output is not None:
+            self.output._ensure_iteration_header(self.iteration + 1)
+
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
@@ -228,6 +235,8 @@ class FreezingString:
             self.r_energy += [None]
             self.r_tangent += [normalize(dxds)]
             self.r_nnodes = len(self.r_string)
+            if self.output is not None:
+                self.output.write_frontier_node("r", r_frontier, self.dist)
 
             if self.dist <= 2 * self.stepsize:
                 self.growing = False
@@ -261,6 +270,8 @@ class FreezingString:
             self.p_energy += [None]
             self.p_tangent += [normalize(dxds)]
             self.p_nnodes = len(self.p_string)
+            if self.output is not None:
+                self.output.write_frontier_node("p", p_frontier, self.dist)
 
         else:
             string = interp()
@@ -282,6 +293,8 @@ class FreezingString:
             self.r_energy += [None]
             self.r_tangent += [normalize(cs(s[r_idx], 1))]
             self.r_nnodes = len(self.r_string)
+            if self.output is not None:
+                self.output.write_frontier_node("r", r_frontier, self.dist)
 
             if self.dist <= 2 * self.stepsize:
                 self.growing = False
@@ -295,6 +308,8 @@ class FreezingString:
             self.p_energy += [None]
             self.p_tangent += [normalize(cs(s[p_idx], 1))]
             self.p_nnodes = len(self.p_string)
+            if self.output is not None:
+                self.output.write_frontier_node("p", p_frontier, self.dist)
 
     def optimize(self, optimizer: Any) -> None:
         """Relax all unfixed frontier nodes perpendicular to the local tangent.
@@ -317,6 +332,8 @@ class FreezingString:
             if self.r_energy[i] is None and self.r_fix[i]:
                 energy = optimizer.calc.get_potential_energy(self.r_string[i])
                 self.r_energy[i] = float_check(energy)
+                if self.output is not None:
+                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], 0)
             elif not self.r_fix[i]:
                 assert self.r_tangent[i] is not None
                 atoms = self.r_string[i]
@@ -330,11 +347,15 @@ class FreezingString:
                     ngrad = 0
                 self.r_fix[i] = True
                 self.ngrad += ngrad
+                if self.output is not None:
+                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], ngrad)
 
         for i in range(self.p_nnodes):
             if self.p_energy[i] is None and self.p_fix[i]:
                 energy = optimizer.calc.get_potential_energy(self.p_string[i])
                 self.p_energy[i] = float_check(energy)
+                if self.output is not None:
+                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], 0)
             elif not self.p_fix[i]:
                 assert self.p_tangent[i] is not None
                 atoms = self.p_string[i]
@@ -348,6 +369,8 @@ class FreezingString:
                     ngrad = 0
                 self.p_fix[i] = True
                 self.ngrad += ngrad
+                if self.output is not None:
+                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], ngrad)
 
         self.dist = distance(self.r_string[-1].get_positions().flatten(), self.p_string[-1].get_positions().flatten())
 
@@ -398,6 +421,9 @@ class FreezingString:
                     f.write(f"{atom} {float(coord[0]):.8f} {float(coord[1]):.8f} {float(coord[2]):.8f}\n")
         energy_str = np.array2string(energy, precision=1, floatmode="fixed")
         logging.info(f"ITERATION: {self.iteration} DIST: {self.dist:.2f} ENERGY: {energy_str}")
+
+        if self.output is not None:
+            self.output.write_iteration_summary(self.iteration, self.r_energy, self.p_energy, self.dist)
 
         if not self.growing:
             with gradfile.open("w") as f:
