@@ -104,16 +104,25 @@ class FreezingString:
         self.natoms = len(self.atoms.numbers)
 
         if not self.use_cartesian_distance:
-            interp = self.interp(reactant, product, ninterp=self.ninterp)
-            s = calculate_arc_length(interp())
+            _interp_init = self.interp(reactant, product, ninterp=self.ninterp)
+            s = calculate_arc_length(_interp_init())
             self.dist = s[-1]
             self.stepsize = self.dist / self.nnodes_min
         else:
-            interp = Linear(reactant, product, ninterp=self.ninterp)
-            s = calculate_arc_length(interp())
+            _interp_init = Linear(reactant, product, ninterp=self.ninterp)
+            s = calculate_arc_length(_interp_init())
             self.dist = s[-1]
             self.stepsize = float(stepsize)
             self.nnodes_min = int(self.dist / self.stepsize)
+
+        if interp_method == "ric":
+            self.init_coordsobj = (
+                _interp_init.coords  # type: ignore[union-attr]
+                if isinstance(_interp_init, RIC)
+                else RIC(reactant, product, ninterp=2).coords
+            )
+        else:
+            self.init_coordsobj = None
 
         logger.info(f"NNODES_MIN: {self.nnodes_min}")
         logger.info(f"DIST: {self.dist:.3f} STEPSIZE: {self.stepsize:.3f}")
@@ -182,7 +191,7 @@ class FreezingString:
         step-size of each other.
         """
         if self.output is not None:
-            self.output._ensure_iteration_header(self.iteration + 1)
+            self.output._ensure_iteration_header(self.iteration + 1, self.dist)
 
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
@@ -207,8 +216,12 @@ class FreezingString:
                 self.growing = False
                 return
 
+            if self.output is not None:
+                self.output.write_current_frontier_node("r", r_atoms)
+
             r_prev = r_xyz.copy().reshape(-1, 3)
             r_idx = 1
+            r_s = 0.0
             for qtarget in string[1:-1]:
                 r_next = interp.coords.x(r_prev, qtarget)
                 _, r_next = project_trans_rot(r_xyz.reshape(-1, 3), r_next)
@@ -236,14 +249,18 @@ class FreezingString:
             self.r_tangent += [normalize(dxds)]
             self.r_nnodes = len(self.r_string)
             if self.output is not None:
-                self.output.write_frontier_node("r", r_frontier, self.dist)
+                self.output.write_frontier_node("r", r_frontier, r_s)
 
             if self.dist <= 2 * self.stepsize:
                 self.growing = False
                 return
 
+            if self.output is not None:
+                self.output.write_current_frontier_node("p", p_atoms)
+
             p_prev = p_xyz.copy().reshape(-1, 3)
             p_idx = 1
+            p_s = 0.0
             for qtarget in string[1:-1][::-1]:
                 p_next = interp.coords.x(p_prev, qtarget)
                 _, p_next = project_trans_rot(p_xyz.reshape(-1, 3), p_next)
@@ -271,7 +288,7 @@ class FreezingString:
             self.p_tangent += [normalize(dxds)]
             self.p_nnodes = len(self.p_string)
             if self.output is not None:
-                self.output.write_frontier_node("p", p_frontier, self.dist)
+                self.output.write_frontier_node("p", p_frontier, p_s)
 
         else:
             string = interp()
@@ -285,6 +302,10 @@ class FreezingString:
 
             r_idx = np.abs(s - self.stepsize).argmin()
             p_idx = np.abs(s - (s[-1] - self.stepsize)).argmin()
+
+            if self.output is not None:
+                self.output.write_current_frontier_node("r", r_atoms)
+
             r_frontier = self.atoms.copy()
             r_frontier.set_positions(string[r_idx].reshape(-1, 3))
 
@@ -294,11 +315,14 @@ class FreezingString:
             self.r_tangent += [normalize(cs(s[r_idx], 1))]
             self.r_nnodes = len(self.r_string)
             if self.output is not None:
-                self.output.write_frontier_node("r", r_frontier, self.dist)
+                self.output.write_frontier_node("r", r_frontier, float(s[r_idx]))
 
             if self.dist <= 2 * self.stepsize:
                 self.growing = False
                 return
+
+            if self.output is not None:
+                self.output.write_current_frontier_node("p", p_atoms)
 
             p_frontier = self.atoms.copy()
             p_frontier.set_positions(string[p_idx].reshape(-1, 3))
@@ -309,7 +333,7 @@ class FreezingString:
             self.p_tangent += [normalize(cs(s[p_idx], 1))]
             self.p_nnodes = len(self.p_string)
             if self.output is not None:
-                self.output.write_frontier_node("p", p_frontier, self.dist)
+                self.output.write_frontier_node("p", p_frontier, float(s[-1] - s[p_idx]))
 
     def optimize(self, optimizer: Any) -> None:
         """Relax all unfixed frontier nodes perpendicular to the local tangent.
@@ -333,44 +357,44 @@ class FreezingString:
                 energy = optimizer.calc.get_potential_energy(self.r_string[i])
                 self.r_energy[i] = float_check(energy)
                 if self.output is not None:
-                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], 0)
+                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], 0, 0)
             elif not self.r_fix[i]:
                 assert self.r_tangent[i] is not None
                 atoms = self.r_string[i]
                 try:
-                    atoms, energy, ngrad = optimizer.optimize(atoms, self.r_tangent[i])
+                    atoms, energy, nfev, nit = optimizer.optimize(atoms, self.r_tangent[i])
                     self.r_string[i] = atoms
                     self.r_energy[i] = float_check(energy)
                 except Exception:
                     energy = optimizer.calc.get_potential_energy(atoms)
                     self.r_energy[i] = float_check(energy)
-                    ngrad = 0
+                    nfev, nit = 0, 0
                 self.r_fix[i] = True
-                self.ngrad += ngrad
+                self.ngrad += nfev
                 if self.output is not None:
-                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], ngrad)
+                    self.output.write_optimized_node("r", i, self.r_string[i], self.r_energy[i], nfev, nit)
 
         for i in range(self.p_nnodes):
             if self.p_energy[i] is None and self.p_fix[i]:
                 energy = optimizer.calc.get_potential_energy(self.p_string[i])
                 self.p_energy[i] = float_check(energy)
                 if self.output is not None:
-                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], 0)
+                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], 0, 0)
             elif not self.p_fix[i]:
                 assert self.p_tangent[i] is not None
                 atoms = self.p_string[i]
                 try:
-                    atoms, energy, ngrad = optimizer.optimize(atoms, self.p_tangent[i])
+                    atoms, energy, nfev, nit = optimizer.optimize(atoms, self.p_tangent[i])
                     self.p_string[i] = atoms
                     self.p_energy[i] = float_check(energy)
                 except Exception:
                     energy = optimizer.calc.get_potential_energy(atoms)
                     self.p_energy[i] = float_check(energy)
-                    ngrad = 0
+                    nfev, nit = 0, 0
                 self.p_fix[i] = True
-                self.ngrad += ngrad
+                self.ngrad += nfev
                 if self.output is not None:
-                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], ngrad)
+                    self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], nfev, nit)
 
         self.dist = distance(self.r_string[-1].get_positions().flatten(), self.p_string[-1].get_positions().flatten())
 

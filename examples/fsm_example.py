@@ -182,7 +182,7 @@ def run_fsm(
     # Initialize FSM string
     string = FreezingString(reactant, product, nnodes_min, interp, ninterp, stepsize, output=fsm_output)
     if fsm_output is not None:
-        fsm_output.write_path_init(string.dist, string.stepsize, string.nnodes_min)
+        fsm_output.write_path_init(string.dist, string.stepsize, string.nnodes_min, string.init_coordsobj)
 
     if interpolate:
         string.interpolate(outdir)

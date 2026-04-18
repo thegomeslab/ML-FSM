@@ -17,6 +17,29 @@ if TYPE_CHECKING:
 _SEP = "=" * 70
 _SEP_THIN = "-" * 70
 
+_CREDIT = """\
+ Developed and maintained by:
+   The Gomes Research Group
+   University of Iowa, Department of Chemical and Biochemical Engineering
+
+ Contributors: Jonah Marks, Jonathon Vandezande, Joe Gomes\
+"""
+
+_CITATION = """\
+ If you use ML-FSM in your research, please cite:
+   Marks, Jonah, and Joseph Gomes. "Incorporation of Internal Coordinates
+   Interpolation into the Freezing String Method." Journal of Chemical
+   Theory and Computation 21.23 (2025): 12110-12120.
+
+ Additionally, please consider citing:
+   Marks, Jonah, Jonathon Vandezande, and Joseph Gomes.
+   "Reliable and Efficient Automated Transition-State Searches with
+   Machine-Learned Interatomic Potentials."
+   arXiv preprint arXiv:2604.00405 (2026).\
+"""
+
+_ATOMS_HEADER = f"   {'Sym':<4s}  {'X':>12s}  {'Y':>12s}  {'Z':>12s}"
+
 
 def _write_section(f: TextIO, title: str) -> None:
     f.write(f"\n {_SEP}\n")
@@ -29,10 +52,17 @@ def _format_atoms_block(atoms: Atoms, indent: str = "   ") -> str:
     symbols = atoms.get_chemical_symbols()
     positions = atoms.get_positions()
     lines = [
-        f"{indent}{i + 1:4d}  {sym:<3s}  {pos[0]:12.6f}  {pos[1]:12.6f}  {pos[2]:12.6f}"
-        for i, (sym, pos) in enumerate(zip(symbols, positions, strict=True))
+        f"{indent}{sym:<4s}  {pos[0]:12.6f}  {pos[1]:12.6f}  {pos[2]:12.6f}"
+        for sym, pos in zip(symbols, positions, strict=True)
     ]
     return "\n".join(lines)
+
+
+def _write_atoms(f: TextIO, atoms: Atoms) -> None:
+    """Write a coordinate block with header to f."""
+    f.write(f"\n{_ATOMS_HEADER}\n")
+    f.write(_format_atoms_block(atoms))
+    f.write("\n")
 
 
 def _chemical_formula(atoms: Atoms) -> str:
@@ -107,7 +137,7 @@ class FSMOutput:
         self._path = Path(outdir) / filename
         self._f: TextIO = self._path.open("w", encoding="utf-8")
         self._current_iteration: int = 0
-        self._node_lines: list[str] = []
+        self._optimizing_written: bool = False
 
     def close(self) -> None:
         """Flush and close the output file."""
@@ -119,7 +149,7 @@ class FSMOutput:
     # ------------------------------------------------------------------
 
     def write_header(self, version: str) -> None:
-        """Write the banner and timestamp."""
+        """Write the banner, credit block, and timestamp."""
         f = self._f
         f.write(f" {_SEP}\n")
         title = "ML-FSM: Machine Learning Freezing String Method"
@@ -128,7 +158,8 @@ class FSMOutput:
         ver_line = f"Version {version}"
         pad2 = (68 - len(ver_line)) // 2
         f.write(f" {' ' * pad2}{ver_line}\n")
-        f.write(f" {_SEP}\n")
+        f.write(f" {_SEP}\n\n")
+        f.write(f"{_CREDIT}\n")
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         f.write(f"\n Date/Time: {now}\n")
         f.flush()
@@ -159,7 +190,7 @@ class FSMOutput:
         if stepsize > 0.0:
             f.write(f"   Step size (explicit)       : {stepsize:.4f} Å\n")
         else:
-            f.write(f"   Step size (explicit)       : derived from target node count\n")
+            f.write(f"   Step size                  : derived from target node count\n")
         f.flush()
 
     def write_system_info(
@@ -204,61 +235,99 @@ class FSMOutput:
         """Write reactant and product coordinate blocks."""
         f = self._f
         _write_section(f, "INITIAL STRUCTURES")
-        f.write("\n   Standard Orientation — Reactant (Angstroms)\n")
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   {'Idx':>4s}  {'Sym':<3s}  {'X':>12s}  {'Y':>12s}  {'Z':>12s}\n")
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(_format_atoms_block(reactant))
-        f.write("\n")
 
-        f.write(f"\n   Standard Orientation — Product (Angstroms)\n")
+        f.write("\n   Reactant (Angstroms)\n")
         f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   {'Idx':>4s}  {'Sym':<3s}  {'X':>12s}  {'Y':>12s}  {'Z':>12s}\n")
+        _write_atoms(f, reactant)
+
+        f.write(f"\n   Product (Angstroms)\n")
         f.write(f"   {_SEP_THIN}\n")
-        f.write(_format_atoms_block(product))
-        f.write("\n")
+        _write_atoms(f, product)
         f.flush()
 
-    def write_path_init(self, dist: float, stepsize: float, nnodes_min: int) -> None:
-        """Write path initialization summary."""
+    def write_path_init(
+        self,
+        dist: float,
+        stepsize: float,
+        nnodes_min: int,
+        coordsobj: Optional[Any] = None,
+    ) -> None:
+        """Write path initialization summary and optional internal coordinate set."""
         f = self._f
         _write_section(f, "PATH INITIALIZATION")
         f.write(f"\n   Total path distance   : {dist:.4f} Å\n")
         f.write(f"   Step size             : {stepsize:.4f} Å\n")
         f.write(f"   Target node count     : {nnodes_min}\n")
+        if coordsobj is not None:
+            self._write_coords_section(f, coordsobj)
         f.flush()
+
+    def _write_coords_section(self, f: TextIO, coordsobj: Any) -> None:
+        keys: list[str] = coordsobj.keys
+        type_counts: Counter[str] = Counter()
+        for k in keys:
+            if "linearbnd" in k:
+                type_counts["Linear bends"] += 1
+            elif "bond" in k or "stre" in k:
+                type_counts["Stretches"] += 1
+            elif "bend" in k:
+                type_counts["Bends"] += 1
+            elif "tors" in k:
+                type_counts["Torsions"] += 1
+            elif "oop" in k:
+                type_counts["Out-of-plane bends"] += 1
+            else:
+                type_counts["Other"] += 1
+        f.write(f"\n   Internal coordinate set  : {len(keys)} coordinates\n")
+        for name, count in type_counts.items():
+            f.write(f"     {name:<22s}: {count}\n")
 
     # ------------------------------------------------------------------
     # Per-iteration sections (called from cos.py hooks)
     # ------------------------------------------------------------------
 
-    def _ensure_iteration_header(self, iteration: int) -> None:
+    def _ensure_iteration_header(self, iteration: int, frontier_dist: float) -> None:
         if iteration != self._current_iteration:
             self._current_iteration = iteration
-            self._node_lines = []
+            self._optimizing_written = False
             _write_section(self._f, f"ITERATION {iteration}")
-            self._f.write("\n")
+            self._f.write(f"\n   Frontier distance : {frontier_dist:.4f} Å\n")
+            self._f.flush()
 
-    def write_frontier_node(self, side: str, atoms: Atoms, dist: float) -> None:
-        """Write the newly selected frontier node structure.
+    def write_current_frontier_node(self, side: str, atoms: Atoms) -> None:
+        """Write the current frontier node geometry before interpolation."""
+        f = self._f
+        label = "Reactant" if side == "r" else "Product"
+        f.write(f"\n   Current {label} Frontier Node:\n")
+        _write_atoms(f, atoms)
+        f.flush()
+
+    def write_frontier_node(
+        self,
+        side: str,
+        atoms: Atoms,
+        actual_dist: float,
+    ) -> None:
+        """Write the interpolated frontier node structure.
 
         Parameters
         ----------
         side : {"r", "p"}
             Which end of the string.
         atoms : Atoms
-            The frontier node geometry.
-        dist : float
-            Current distance between frontier nodes.
+            The interpolated frontier node geometry.
+        actual_dist : float
+            Actual Cartesian step distance from the frontier node to the
+            selected interpolated structure (may differ from target stepsize).
         """
         f = self._f
-        label = "Reactant-side frontier" if side == "r" else "Product-side frontier"
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   {label}  (frontier distance = {dist:.4f} Å)\n")
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   {'Idx':>4s}  {'Sym':<3s}  {'X':>12s}  {'Y':>12s}  {'Z':>12s}\n")
-        f.write(_format_atoms_block(atoms))
-        f.write("\n")
+        label = "Reactant-side" if side == "r" else "Product-side"
+        f.write(f"\n   Interpolating...\n")
+        f.write(
+            f"\n   {label} interpolated structure"
+            f" (actual step: {actual_dist:.4f} Å from frontier node):\n"
+        )
+        _write_atoms(f, atoms)
         f.flush()
 
     def write_optimized_node(
@@ -267,12 +336,10 @@ class FSMOutput:
         idx: int,
         atoms: Atoms,
         energy: Optional[float],
-        ngrad: int,
+        nfev: int,
+        nit: int,
     ) -> None:
-        """Record an optimized (or endpoint-evaluated) node.
-
-        Called from within ``FreezingString.optimize()``.  Results are
-        buffered and flushed together with the iteration summary.
+        """Write an optimized (or endpoint-evaluated) node with its structure.
 
         Parameters
         ----------
@@ -284,26 +351,26 @@ class FSMOutput:
             Final geometry after optimization.
         energy : float or None
             Energy in eV.
-        ngrad : int
-            Number of gradient calls used (0 for endpoint-only evaluation).
+        nfev : int
+            Total function evaluations (true gradient call count); 0 for endpoint.
+        nit : int
+            Number of optimizer iterations; 0 for endpoint.
         """
-        tag = f"{side}[{idx}]"
-        kind = "endpoint " if ngrad == 0 else "optimized"
-        if energy is not None:
-            e_str = f"{energy:+.6f} eV"
-        else:
-            e_str = "N/A"
-        grad_str = "" if ngrad == 0 else f"   ngrad = {ngrad}"
-        self._node_lines.append(f"     {tag:<8s}  {kind}  :  energy = {e_str}{grad_str}")
-
         f = self._f
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   Optimized node {tag} ({kind})\n")
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   Energy: {e_str}{grad_str}\n")
-        f.write(f"   {'Idx':>4s}  {'Sym':<3s}  {'X':>12s}  {'Y':>12s}  {'Z':>12s}\n")
-        f.write(_format_atoms_block(atoms))
-        f.write("\n")
+        if not self._optimizing_written:
+            f.write("\n   Optimizing...\n")
+            self._optimizing_written = True
+
+        tag = f"{side}[{idx}]"
+        kind = "endpoint" if nfev == 0 else "optimized"
+        e_str = f"{energy:+.6f} eV" if energy is not None else "N/A"
+        if nfev > 0:
+            nls = max(0, nfev - nit)
+            grad_str = f"   nfev = {nfev}  (nit = {nit}, nls = {nls})"
+        else:
+            grad_str = ""
+        f.write(f"\n   {tag} ({kind}):  energy = {e_str}{grad_str}\n")
+        _write_atoms(f, atoms)
         f.flush()
 
     def write_iteration_summary(
@@ -313,7 +380,7 @@ class FSMOutput:
         p_energies: list[Optional[float]],
         dist: float,
     ) -> None:
-        """Write per-iteration energy table and distance.
+        """Write per-iteration energy table.
 
         Called from ``FreezingString.write()`` after the XYZ file is written.
         """
@@ -325,7 +392,7 @@ class FSMOutput:
         e_min = min(valid)
 
         f.write(f"\n   {_SEP_THIN}\n")
-        f.write(f"   Iteration {iteration} summary   (frontier distance = {dist:.4f} Å)\n")
+        f.write(f"   Iteration {iteration} energy summary   (frontier distance = {dist:.4f} Å)\n")
         f.write(f"   {_SEP_THIN}\n")
         f.write(f"   {'Node':<8s}  {'Side':<8s}  {'Energy (eV)':>14s}  {'Rel. Energy (eV)':>18s}\n")
         f.write(f"   {_SEP_THIN}\n")
@@ -352,19 +419,22 @@ class FSMOutput:
     # ------------------------------------------------------------------
 
     def write_final_summary(self, string: "FreezingString") -> None:
-        """Write TS guess identification and full string energy profile."""
+        """Write the full optimized string, TS guess, and citation block."""
         f = self._f
-        _write_section(f, "CALCULATION COMPLETE")
-
-        all_energies = string.r_energy + string.p_string[::-1]  # type: ignore[operator]
         all_energies = string.r_energy + string.p_energy[::-1]
+        all_atoms = string.r_string + string.p_string[::-1]
         valid_pairs = [(i, e) for i, e in enumerate(all_energies) if e is not None]
 
+        # ------------------------------------------------------------------
+        # Stats
+        # ------------------------------------------------------------------
+        _write_section(f, "CALCULATION COMPLETE")
         f.write(f"\n   Total iterations       : {string.iteration}\n")
-        f.write(f"   Total gradient calls   : {string.ngrad}\n\n")
+        f.write(f"   Total gradient calls   : {string.ngrad}\n")
 
         if not valid_pairs:
-            f.write("   No energies available.\n")
+            f.write("\n   No energies available.\n")
+            self._write_citation()
             f.flush()
             return
 
@@ -382,31 +452,57 @@ class FSMOutput:
             p_idx = len(all_energies) - 1 - ts_global_idx
             ts_label = f"p[{p_idx}]"
 
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   TS Guess: node {ts_label}  (highest-energy node)\n")
+        f.write(f"\n   TS Guess: node {ts_label}  (highest-energy node)\n")
         f.write(f"     Absolute energy  : {ts_energy:+.6f} eV\n")
         f.write(f"     Relative energy  : {ts_energy - e_min:+.4f} eV  (above string minimum)\n")
-        f.write(f"   {_SEP_THIN}\n\n")
 
-        f.write(f"   Full String Energies (relative to minimum, eV)\n")
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"   {'Node':<8s}  {'Side':<8s}  {'Energy (eV)':>14s}  {'Rel. Energy (eV)':>18s}\n")
-        f.write(f"   {_SEP_THIN}\n")
+        # ------------------------------------------------------------------
+        # Full string — every node with coordinates and energy
+        # ------------------------------------------------------------------
+        _write_section(f, "FULL OPTIMIZED STRING")
+        f.write(
+            "\n   The complete optimized string is shown below.\n"
+            "   Each node is listed with its energy and atomic coordinates (Angstroms).\n"
+        )
 
         for local_i, (global_i, e) in enumerate(valid_pairs):
             if global_i < nr:
-                side = "R" if global_i == 0 else "r"
+                if global_i == 0:
+                    role = " — Reactant"
+                else:
+                    role = ""
             else:
                 p_pos = len(all_energies) - 1 - global_i
-                side = "P" if p_pos == 0 else "p"
-            ts_marker = "  <-- TS guess" if local_i == ts_local else ""
-            e_str = f"{e:+.6f}"
-            rel_str = f"{e - e_min:+.4f}"
-            f.write(
-                f"   {local_i + 1:<8d}  {side:<8s}  {e_str:>14s}  {rel_str:>18s}{ts_marker}\n"
-            )
+                role = " — Product" if p_pos == 0 else ""
 
-        f.write(f"   {_SEP_THIN}\n")
-        f.write(f"\n   Full string written to: vfile_{string.iteration:02d}.xyz\n")
-        f.write(f"\n {_SEP}\n")
+            is_ts = local_i == ts_local
+            ts_tag = "  *** TS Guess ***" if is_ts else ""
+
+            f.write(f"\n   Node {local_i + 1}{role}{ts_tag}\n")
+            f.write(f"   {'Energy (abs)':<18s}: {e:+.6f} eV\n")
+            f.write(f"   {'Energy (rel)':<18s}: {e - e_min:+.4f} eV\n")
+            _write_atoms(f, all_atoms[global_i])
+
+        # ------------------------------------------------------------------
+        # TS guess standalone section
+        # ------------------------------------------------------------------
+        _write_section(f, "TRANSITION STATE GUESS")
+        f.write(
+            f"\n   Node {ts_local + 1} ({ts_label}) is identified as the TS guess\n"
+            f"   based on being the highest-energy node along the optimized string.\n"
+        )
+        f.write(f"\n   Energy (absolute) : {ts_energy:+.6f} eV\n")
+        f.write(f"   Energy (relative) : {ts_energy - e_min:+.4f} eV  (above string minimum)\n")
+        _write_atoms(f, all_atoms[ts_global_idx])
+
+        # ------------------------------------------------------------------
+        # Citation
+        # ------------------------------------------------------------------
+        self._write_citation()
         f.flush()
+
+    def _write_citation(self) -> None:
+        f = self._f
+        _write_section(f, "CITATION")
+        f.write(f"\n{_CITATION}\n")
+        f.write(f"\n {_SEP}\n")
