@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from mlfsm.output import FSMOutput
 
-from mlfsm.coords import Cartesian
+from mlfsm.coords import Cartesian, Redundant
 from mlfsm.geom import (
     calculate_arc_length,
     distance,
@@ -115,11 +115,10 @@ class FreezingString:
             self.stepsize = float(stepsize)
             self.nnodes_min = int(self.dist / self.stepsize)
 
+        self.init_coordsobj: Optional[Redundant] = None
         if interp_method == "ric":
             self.init_coordsobj = (
-                _interp_init.coords  # type: ignore[union-attr]
-                if isinstance(_interp_init, RIC)
-                else RIC(reactant, product, ninterp=2).coords
+                _interp_init.coords if isinstance(_interp_init, RIC) else RIC(reactant, product, ninterp=2).coords
             )
         else:
             self.init_coordsobj = None

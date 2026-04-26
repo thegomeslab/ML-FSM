@@ -91,7 +91,7 @@ class CartesianOptimizer(Optimizer):
         pgrads = proj @ grads
         return energy, pgrads
 
-    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int]:
+    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int, int]:
         """Run optimization in Cartesian coordinates using user specified method.
 
         Args:
@@ -211,7 +211,7 @@ class InternalsOptimizer(Optimizer):
 
         return energy, pgrads
 
-    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int]:
+    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int, int]:
         """Run optimization in internal coordinates using user specified method.
 
         Args:

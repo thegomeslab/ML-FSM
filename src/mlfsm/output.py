@@ -115,7 +115,7 @@ def get_calculator_info(calc: Any) -> dict[str, Any]:
         except Exception:
             pass
     try:
-        ckpt = calc.predictor.checkpoint_path  # type: ignore[union-attr]
+        ckpt = calc.predictor.checkpoint_path
         info["checkpoint"] = str(ckpt)
     except Exception:
         pass
