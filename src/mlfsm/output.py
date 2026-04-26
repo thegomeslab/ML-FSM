@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, TextIO
 
 import numpy as np
-from ase import Atoms
-from numpy.typing import NDArray
 
 if TYPE_CHECKING:
+    from ase import Atoms
+    from numpy.typing import NDArray
+
     from mlfsm.cos import FreezingString
 
 _SEP = "=" * 70
@@ -67,7 +68,7 @@ def _write_atoms(f: TextIO, atoms: Atoms) -> None:
 
 def _chemical_formula(atoms: Atoms) -> str:
     counts: Counter[str] = Counter(atoms.get_chemical_symbols())
-    order = ["C", "H"] + sorted(k for k in counts if k not in ("C", "H"))
+    order = ["C", "H", *sorted(k for k in counts if k not in ("C", "H"))]
     parts = []
     for sym in order:
         if sym in counts:
@@ -190,7 +191,7 @@ class FSMOutput:
         if stepsize > 0.0:
             f.write(f"   Step size (explicit)       : {stepsize:.4f} Å\n")
         else:
-            f.write(f"   Step size                  : derived from target node count\n")
+            f.write("   Step size                  : derived from target node count\n")
         f.flush()
 
     def write_system_info(
@@ -240,7 +241,7 @@ class FSMOutput:
         f.write(f"   {_SEP_THIN}\n")
         _write_atoms(f, reactant)
 
-        f.write(f"\n   Product (Angstroms)\n")
+        f.write("\n   Product (Angstroms)\n")
         f.write(f"   {_SEP_THIN}\n")
         _write_atoms(f, product)
         f.flush()
@@ -322,11 +323,8 @@ class FSMOutput:
         """
         f = self._f
         label = "Reactant-side" if side == "r" else "Product-side"
-        f.write(f"\n   Interpolating...\n")
-        f.write(
-            f"\n   {label} interpolated structure"
-            f" (actual step: {actual_dist:.4f} Å from frontier node):\n"
-        )
+        f.write("\n   Interpolating...\n")
+        f.write(f"\n   {label} interpolated structure (actual step: {actual_dist:.4f} Å from frontier node):\n")
         _write_atoms(f, atoms)
         f.flush()
 
