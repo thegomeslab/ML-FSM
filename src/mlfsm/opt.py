@@ -91,7 +91,7 @@ class CartesianOptimizer(Optimizer):
         pgrads = proj @ grads
         return energy, pgrads
 
-    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int]:
+    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int, int]:
         """Run optimization in Cartesian coordinates using user specified method.
 
         Args:
@@ -100,8 +100,8 @@ class CartesianOptimizer(Optimizer):
 
         Returns
         -------
-            tuple[ASE.Atoms,float,int]: ASE.Atoms with final positions, energy of final structure, and number
-            of gradient calculations used by optimization.
+            tuple[ASE.Atoms,float,int,int]: ASE.Atoms with final positions, energy, total function
+            evaluations (nfev), and number of optimizer iterations (nit).
         """
         xyz = atoms.get_positions().flatten()
         config = {
@@ -119,7 +119,7 @@ class CartesianOptimizer(Optimizer):
         res = minimize(**config)
         atomsf = atoms.copy()
         atomsf.set_positions(res.x.reshape(-1, 3))
-        return atomsf, res.fun, res.njev
+        return atomsf, res.fun, res.nfev, res.nit
 
 
 @dataclass
@@ -211,7 +211,7 @@ class InternalsOptimizer(Optimizer):
 
         return energy, pgrads
 
-    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int]:
+    def optimize(self, atoms: Atoms, tangent: NDArray[Any]) -> tuple[Atoms, float, int, int]:
         """Run optimization in internal coordinates using user specified method.
 
         Args:
@@ -220,8 +220,8 @@ class InternalsOptimizer(Optimizer):
 
         Returns
         -------
-            tuple[ASE.Atoms,float,int]: ASE.Atoms with final positions, energy of final structure, and number
-            of gradient calculations used by optimization.
+            tuple[ASE.Atoms,float,int,int]: ASE.Atoms with final positions, energy, total function
+            evaluations (nfev), and number of optimizer iterations (nit).
         """
         assert self.coordsobj is not None, "Coordsobj must be initialized"
 
@@ -241,4 +241,4 @@ class InternalsOptimizer(Optimizer):
         atomsf = atoms.copy()
         atomsf.set_positions(xf)
 
-        return atomsf, res.fun, res.njev
+        return atomsf, res.fun, res.nfev, res.nit
