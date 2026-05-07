@@ -31,7 +31,7 @@ To access the most recent features and bug fixes, install from source:
 Optional: Calculator Dependencies
 --------------------------------------
 
-ML-FSM works with any ASE-compatible calculator including traditional QM and semi-empirical potential energy surfaces. 
+ML-FSM works with any ASE-compatible calculator including traditional QM and semi-empirical potential energy surfaces.
 The following potentials have been tested and are supported out of the box via ``examples/fsm_example.py``:
 
 .. list-table::
