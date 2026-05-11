@@ -1,7 +1,7 @@
 """Interpolation methods for constructing paths between endpoint geometries."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 from ase import Atoms
@@ -35,6 +35,10 @@ class Interpolate:
         If ``True``, return interpolated internal coordinate vectors instead
         of Cartesian positions. Only meaningful for :class:`RIC`. Default is
         ``False``.
+    raise_on_backtransf_fail : bool, optional
+        If ``True``, raise a RuntimeError if the RIC back transformation fails
+        to converge during interpolation or node growth. Only meaningful for
+        :class:`RIC`. Default is ``True``.
     """
 
     atoms1: Atoms
@@ -42,6 +46,7 @@ class Interpolate:
     ninterp: int
     gtol: float = 1e-4
     return_q: bool = False
+    raise_on_backtransf_fail: bool = True
 
     def interpolate(self) -> NDArray[np.float32]:
         """Abstract interpolation routine — must be overridden by subclasses."""
@@ -127,7 +132,9 @@ class LST(Interpolate):
         rab_i = rab(f)
         x_i = xab(f).reshape(-1, 3)
 
-        return float((((rab_i - rab_c) ** 2) / rab_i**4).sum() + 5e-2 * ((x_i - x_c) ** 2).sum())
+        return float(
+            (((rab_i - rab_c) ** 2) / rab_i**4).sum() + 5e-2 * ((x_i - x_c) ** 2).sum(),
+        )
 
     def interpolate(self) -> NDArray[np.float32]:
         """Return LST-interpolated path.
@@ -184,7 +191,12 @@ class RIC(Interpolate):
 
     def __post_init__(self) -> None:
         """Build the shared redundant internal coordinate system."""
-        self.coords = Redundant(self.atoms1, self.atoms2, verbose=False)
+        self.coords = Redundant(
+            self.atoms1,
+            self.atoms2,
+            verbose=False,
+            raise_on_backtransf_fail=self.raise_on_backtransf_fail,
+        )
 
     def interpolate(self) -> NDArray[np.float32]:
         """Return RIC-interpolated path in Cartesian (or internal) coordinates.

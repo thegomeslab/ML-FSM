@@ -36,9 +36,11 @@ class Coordinates:
         atoms1: Atoms,
         atoms2: Atoms | None = None,
         verbose: bool = False,
+        raise_on_backtransf_fail: bool = True,
     ) -> None:
         self.atoms1 = atoms1
         self.atoms2 = atoms2
+        self.raise_on_backtransf_fail = raise_on_backtransf_fail
         c = atoms1.constraints  # constraint indicies must be identical between R&P therefor only one is needed
         if len(c) > 0:
             self.fixed_atoms = c[0].get_indices()
@@ -154,9 +156,20 @@ class Coordinates:
 
             niter += 1
             if niter > MAX_ITERATIONS:
-                raise RuntimeError(
-                    f"Back transformation did not converge after {MAX_ITERATIONS} iterations.",
-                )
+                if self.verbose:
+                    print("R FUNCTION FAILED")
+                if self.verbose:
+                    print(f"Iteration {niter}")
+                if self.verbose:
+                    print(f"\tRMS(dx) = {rms_dx:10.5e}")
+                if self.verbose:
+                    print(f"\tRMS(dq) = {rms_dq:10.5e}")
+                if self.raise_on_backtransf_fail:
+                    raise RuntimeError(
+                        f"Back transformation did not converge after {MAX_ITERATIONS} iterations.",
+                    )
+
+                return np.array(xyz_backup, dtype=np.float64)
 
             if rms_dq < dq_min:
                 xyz1.copy()

@@ -140,7 +140,10 @@ def run_fsm(
         calc = XTB(method="GFN2-xTB")
     elif calculator == "uma":
         import torch
-        from fairchem.core import FAIRChemCalculator, pretrained_mlip  # type: ignore [import-not-found]
+        from fairchem.core import (  # type: ignore [import-not-found]
+            FAIRChemCalculator,
+            pretrained_mlip,
+        )
 
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         predictor = pretrained_mlip.get_predict_unit("uma-s-1", device=dev)
@@ -194,10 +197,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("reaction_dir", type=Path, help="absolute path to reaction")
     parser.add_argument(
-        "--optcoords", type=str, default="cart", choices=["cart", "ric"], help="Coordinates for optimization"
+        "--optcoords",
+        type=str,
+        default="cart",
+        choices=["cart", "ric"],
+        help="Coordinates for optimization",
     )
     parser.add_argument(
-        "--interp", type=str, default="ric", choices=["cart", "lst", "ric"], help="Interpolation method"
+        "--interp",
+        type=str,
+        default="ric",
+        choices=["cart", "lst", "ric"],
+        help="Interpolation method",
     )
     parser.add_argument("--nnodes_min", type=int, default=18, help="Minimum number of nodes in the FSM string")
     parser.add_argument(
@@ -209,7 +220,11 @@ if __name__ == "__main__":
     parser.add_argument("--ninterp", type=int, default=50, help="Number of interpolation points between nodes")
     parser.add_argument("--suffix", type=str, default=None, help="Suffix for output directory")
     parser.add_argument(
-        "--method", type=str, default="L-BFGS-B", choices=["L-BFGS-B", "CG"], help="Optimization method"
+        "--method",
+        type=str,
+        default="L-BFGS-B",
+        choices=["L-BFGS-B", "CG"],
+        help="Optimization method",
     )
     parser.add_argument("--maxls", type=int, default=3, help="Maximum number of line search iterations")
     parser.add_argument("--maxiter", type=int, default=2, help="Maximum number of optimization iterations")
@@ -228,7 +243,10 @@ if __name__ == "__main__":
         help="Checkpoint for calculator",
     )
     parser.add_argument(
-        "--fixed", type=str, default="", help="Fix atoms, 1-indexed. usage: 1-12 fixes the first 12 atoms"
+        "--fixed",
+        type=str,
+        default="",
+        help="Fix atoms, 1-indexed. usage: 1-12 fixes the first 12 atoms",
     )
     parser.add_argument("--chg", type=int, default=0, help="Charge of the system")
     parser.add_argument("--mult", type=int, default=1, help="Multiplicity of the system")

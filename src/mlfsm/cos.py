@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from ase import Atoms
@@ -59,6 +59,9 @@ class FreezingString:
         ``nnodes_min``. The step size is measured along the Cartesian
         arc length of the initial linear interpolation. Default is 0.0
         (derive step size from ``nnodes_min``).
+    raise_on_backtransf_fail : bool, optional
+        If ``True``, raise a RuntimeError if the RIC back transformation fails
+        to converge during interpolation or node growth. Default is ``True``.
 
     Attributes
     ----------
@@ -80,12 +83,14 @@ class FreezingString:
         interp_method: str = "ric",
         ninterp: int = 100,
         stepsize: float = 0.0,
+        raise_on_backtransf_fail: bool = True,
     ) -> None:
         self.interp: Any
         self.interp_method = interp_method
         self.nnodes_min = int(nnodes_min)
         self.ninterp = int(ninterp)
         self.use_cartesian_distance = True if stepsize > 0 else False
+        self.raise_on_backtransf_fail = raise_on_backtransf_fail
 
         if interp_method == "cart":
             self.interp = Linear
@@ -116,13 +121,13 @@ class FreezingString:
 
         self.r_string: list[Atoms] = [reactant.copy()]
         self.r_fix: list[bool] = [True]
-        self.r_energy: list[Optional[float]] = [None]
-        self.r_tangent: list[Optional[NDArray[Any]]] = [None]
+        self.r_energy: list[float | None] = [None]
+        self.r_tangent: list[NDArray[Any] | None] = [None]
         self.r_nnodes = len(self.r_string)
         self.p_string: list[Atoms] = [product.copy()]
         self.p_fix: list[bool] = [True]
-        self.p_energy: list[Optional[float]] = [None]
-        self.p_tangent: list[Optional[NDArray[Any]]] = [None]
+        self.p_energy: list[float | None] = [None]
+        self.p_tangent: list[NDArray[Any] | None] = [None]
         self.p_nnodes = len(self.p_string)
 
         self.growing = True
@@ -147,7 +152,10 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
+        r_xyz, p_xyz = project_trans_rot(
+            r_atoms.get_positions(),
+            p_atoms.get_positions(),
+        )
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp)
@@ -164,7 +172,11 @@ class FreezingString:
             for i, atoms in enumerate(path):
                 f.write(f"{self.natoms}\n")
                 f.write(f"{s[i]:.5f}\n")
-                for atom, xyz in zip(atoms.get_chemical_symbols(), atoms.get_positions(), strict=True):
+                for atom, xyz in zip(
+                    atoms.get_chemical_symbols(),
+                    atoms.get_positions(),
+                    strict=True,
+                ):
                     x, y, z = map(float, xyz)
                     f.write(f"{atom} {x:.8f} {y:.8f} {z:.8f}\n")
 
@@ -180,7 +192,10 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
+        r_xyz, p_xyz = project_trans_rot(
+            r_atoms.get_positions(),
+            p_atoms.get_positions(),
+        )
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         return_q = self.use_cartesian_distance
@@ -188,7 +203,11 @@ class FreezingString:
         try:
             self.coordsobj = interp.coords
         except Exception:
-            self.coordsobj = Cartesian(r_atoms, p_atoms)
+            self.coordsobj = Cartesian(
+                r_atoms,
+                p_atoms,
+                raise_on_backtransf_fail=self.raise_on_backtransf_fail,
+            )
 
         if self.use_cartesian_distance and self.interp_method == "ric":
             string = interp()
@@ -349,7 +368,10 @@ class FreezingString:
                 self.p_fix[i] = True
                 self.ngrad += ngrad
 
-        self.dist = distance(self.r_string[-1].get_positions().flatten(), self.p_string[-1].get_positions().flatten())
+        self.dist = distance(
+            self.r_string[-1].get_positions().flatten(),
+            self.p_string[-1].get_positions().flatten(),
+        )
 
         if self.dist < self.stepsize:
             self.growing = False
@@ -388,16 +410,24 @@ class FreezingString:
         with outfile.open("w") as f:
             for i, atoms in enumerate(path):
                 if fixed:
-                    _, xyz = project_trans_rot_fixed(string[0], string[i], fixed=fixed_atoms)
+                    _, xyz = project_trans_rot_fixed(
+                        string[0],
+                        string[i],
+                        fixed=fixed_atoms,
+                    )
                 else:
                     _, xyz = project_trans_rot(string[0], string[i])
                 xyz = xyz.reshape(-1, 3)
                 f.write(f"{self.natoms}\n")
                 f.write(f"{s[i]:.5f} {energy[i]:.3f}\n")
                 for atom, coord in zip(atoms.get_chemical_symbols(), xyz, strict=False):
-                    f.write(f"{atom} {float(coord[0]):.8f} {float(coord[1]):.8f} {float(coord[2]):.8f}\n")
+                    f.write(
+                        f"{atom} {float(coord[0]):.8f} {float(coord[1]):.8f} {float(coord[2]):.8f}\n",
+                    )
         energy_str = np.array2string(energy, precision=1, floatmode="fixed")
-        logging.info(f"ITERATION: {self.iteration} DIST: {self.dist:.2f} ENERGY: {energy_str}")
+        logging.info(
+            f"ITERATION: {self.iteration} DIST: {self.dist:.2f} ENERGY: {energy_str}",
+        )
 
         if not self.growing:
             with gradfile.open("w") as f:
