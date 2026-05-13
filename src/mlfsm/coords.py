@@ -1,7 +1,7 @@
 """Coordinate generation and transformation tools for FSM optimization."""
 
 import itertools
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import networkx as nx
 import numpy as np
@@ -396,7 +396,7 @@ class Redundant(Coordinates):
                 for c in b_neighbors:
                     for d in b_neighbors:
                         if a < c < d:
-                            for i, j, k in sorted(itertools.permutations([a, c, d], 3)):  # noqa: C414
+                            for i, j, k in sorted(list(itertools.permutations([a, c, d], 3))):  # noqa: C414
                                 ang1 = Angle(b, i, j)
                                 ang2 = Angle(i, j, k)
                                 if np.abs(np.cos(ang1.value(xyzb))) > np.abs(angle_thresh):
@@ -472,7 +472,7 @@ class Redundant(Coordinates):
                 basecoord = name[:-2]
                 to_delete.append(basecoord + "_0")
                 to_delete.append(basecoord + "_1")
-                to_add[f"bend_{coord.a}_{coord.b}_{coord.c}"] = Angle(coord.a,coord.b,coord.c)
+                to_add[f"bend_{coord.a}_{coord.b}_{coord.c}"] = Angle(coord.a, coord.b, coord.c)
             if "linearbnd" in name:
                 a, b, c = coord.a, coord.b, coord.c
                 ang = Angle(a, b, c)
