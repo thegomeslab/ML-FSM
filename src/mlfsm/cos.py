@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 from ase import Atoms
@@ -121,13 +121,13 @@ class FreezingString:
 
         self.r_string: list[Atoms] = [reactant.copy()]
         self.r_fix: list[bool] = [True]
-        self.r_energy: list[float | None] = [None]
-        self.r_tangent: list[NDArray[Any] | None] = [None]
+        self.r_energy: list[Optional[float]] = [None]
+        self.r_tangent: list[Optional[NDArray[Any]]] = [None]
         self.r_nnodes = len(self.r_string)
         self.p_string: list[Atoms] = [product.copy()]
         self.p_fix: list[bool] = [True]
-        self.p_energy: list[float | None] = [None]
-        self.p_tangent: list[NDArray[Any] | None] = [None]
+        self.p_energy: list[Optional[float]] = [None]
+        self.p_tangent: list[Optional[NDArray[Any]]] = [None]
         self.p_nnodes = len(self.p_string)
 
         self.growing = True
@@ -152,10 +152,7 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(
-            r_atoms.get_positions(),
-            p_atoms.get_positions(),
-        )
+        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(),p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp)
@@ -192,10 +189,7 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(
-            r_atoms.get_positions(),
-            p_atoms.get_positions(),
-        )
+        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(),p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         return_q = self.use_cartesian_distance
@@ -368,10 +362,7 @@ class FreezingString:
                 self.p_fix[i] = True
                 self.ngrad += ngrad
 
-        self.dist = distance(
-            self.r_string[-1].get_positions().flatten(),
-            self.p_string[-1].get_positions().flatten(),
-        )
+        self.dist = distance(self.r_string[-1].get_positions().flatten(),self.p_string[-1].get_positions().flatten())
 
         if self.dist < self.stepsize:
             self.growing = False
@@ -410,24 +401,16 @@ class FreezingString:
         with outfile.open("w") as f:
             for i, atoms in enumerate(path):
                 if fixed:
-                    _, xyz = project_trans_rot_fixed(
-                        string[0],
-                        string[i],
-                        fixed=fixed_atoms,
-                    )
+                    _, xyz = project_trans_rot_fixed(string[0],string[i],fixed=fixed_atoms)
                 else:
                     _, xyz = project_trans_rot(string[0], string[i])
                 xyz = xyz.reshape(-1, 3)
                 f.write(f"{self.natoms}\n")
                 f.write(f"{s[i]:.5f} {energy[i]:.3f}\n")
                 for atom, coord in zip(atoms.get_chemical_symbols(), xyz, strict=False):
-                    f.write(
-                        f"{atom} {float(coord[0]):.8f} {float(coord[1]):.8f} {float(coord[2]):.8f}\n",
-                    )
+                    f.write(f"{atom} {float(coord[0]):.8f} {float(coord[1]):.8f} {float(coord[2]):.8f}\n")
         energy_str = np.array2string(energy, precision=1, floatmode="fixed")
-        logging.info(
-            f"ITERATION: {self.iteration} DIST: {self.dist:.2f} ENERGY: {energy_str}",
-        )
+        logging.info(f"ITERATION: {self.iteration} DIST: {self.dist:.2f} ENERGY: {energy_str}")
 
         if not self.growing:
             with gradfile.open("w") as f:

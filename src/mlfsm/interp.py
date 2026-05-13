@@ -132,9 +132,7 @@ class LST(Interpolate):
         rab_i = rab(f)
         x_i = xab(f).reshape(-1, 3)
 
-        return float(
-            (((rab_i - rab_c) ** 2) / rab_i**4).sum() + 5e-2 * ((x_i - x_c) ** 2).sum(),
-        )
+        return float((((rab_i - rab_c) ** 2) / rab_i**4).sum() + 5e-2 * ((x_i - x_c) ** 2).sum())
 
     def interpolate(self) -> NDArray[np.float32]:
         """Return LST-interpolated path.
@@ -191,12 +189,7 @@ class RIC(Interpolate):
 
     def __post_init__(self) -> None:
         """Build the shared redundant internal coordinate system."""
-        self.coords = Redundant(
-            self.atoms1,
-            self.atoms2,
-            verbose=False,
-            raise_on_backtransf_fail=self.raise_on_backtransf_fail,
-        )
+        self.coords = Redundant(self.atoms1,self.atoms2,verbose=False,raise_on_backtransf_fail=self.raise_on_backtransf_fail)
 
     def interpolate(self) -> NDArray[np.float32]:
         """Return RIC-interpolated path in Cartesian (or internal) coordinates.
