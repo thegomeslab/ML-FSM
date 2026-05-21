@@ -189,7 +189,9 @@ class RIC(Interpolate):
 
     def __post_init__(self) -> None:
         """Build the shared redundant internal coordinate system."""
-        self.coords = Redundant(self.atoms1,self.atoms2,verbose=False,raise_on_backtransf_fail=self.raise_on_backtransf_fail)
+        self.coords = Redundant(
+            self.atoms1, self.atoms2, verbose=False, raise_on_backtransf_fail=self.raise_on_backtransf_fail
+        )
 
     def interpolate(self) -> NDArray[np.float32]:
         """Return RIC-interpolated path in Cartesian (or internal) coordinates.

@@ -164,7 +164,7 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(),p_atoms.get_positions())
+        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp)
@@ -204,7 +204,7 @@ class FreezingString:
         r_atoms = self.r_string[-1]
         p_atoms = self.p_string[-1]
 
-        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(),p_atoms.get_positions())
+        r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
         return_q = self.use_cartesian_distance
@@ -408,7 +408,7 @@ class FreezingString:
                 if self.output is not None:
                     self.output.write_optimized_node("p", i, self.p_string[i], self.p_energy[i], nfev, nit)
 
-        self.dist = distance(self.r_string[-1].get_positions().flatten(),self.p_string[-1].get_positions().flatten())
+        self.dist = distance(self.r_string[-1].get_positions().flatten(), self.p_string[-1].get_positions().flatten())
 
         if self.dist < self.stepsize:
             self.growing = False
@@ -447,7 +447,7 @@ class FreezingString:
         with outfile.open("w") as f:
             for i, atoms in enumerate(path):
                 if fixed:
-                    _, xyz = project_trans_rot_fixed(string[0],string[i],fixed=fixed_atoms)
+                    _, xyz = project_trans_rot_fixed(string[0], string[i], fixed=fixed_atoms)
                 else:
                     _, xyz = project_trans_rot(string[0], string[i])
                 xyz = xyz.reshape(-1, 3)
