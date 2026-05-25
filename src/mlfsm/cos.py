@@ -61,6 +61,9 @@ class FreezingString:
         ``nnodes_min``. The step size is measured along the Cartesian
         arc length of the initial linear interpolation. Default is 0.0
         (derive step size from ``nnodes_min``).
+    raise_on_backtransf_fail : bool, optional
+        If ``True``, raise a RuntimeError if the RIC back transformation fails
+        to converge during interpolation or node growth. Default is ``True``.
 
     Attributes
     ----------
@@ -82,6 +85,7 @@ class FreezingString:
         interp_method: str = "ric",
         ninterp: int = 100,
         stepsize: float = 0.0,
+        raise_on_backtransf_fail: bool = True,
         output: Optional["FSMOutput"] = None,
     ) -> None:
         self.output = output
@@ -90,6 +94,7 @@ class FreezingString:
         self.nnodes_min = int(nnodes_min)
         self.ninterp = int(ninterp)
         self.use_cartesian_distance = True if stepsize > 0 else False
+        self.raise_on_backtransf_fail = raise_on_backtransf_fail
 
         if interp_method == "cart":
             self.interp = Linear
@@ -176,7 +181,11 @@ class FreezingString:
             for i, atoms in enumerate(path):
                 f.write(f"{self.natoms}\n")
                 f.write(f"{s[i]:.5f}\n")
-                for atom, xyz in zip(atoms.get_chemical_symbols(), atoms.get_positions(), strict=True):
+                for atom, xyz in zip(
+                    atoms.get_chemical_symbols(),
+                    atoms.get_positions(),
+                    strict=True,
+                ):
                     x, y, z = map(float, xyz)
                     f.write(f"{atom} {x:.8f} {y:.8f} {z:.8f}\n")
 
@@ -203,7 +212,11 @@ class FreezingString:
         try:
             self.coordsobj = interp.coords
         except Exception:
-            self.coordsobj = Cartesian(r_atoms, p_atoms)
+            self.coordsobj = Cartesian(
+                r_atoms,
+                p_atoms,
+                raise_on_backtransf_fail=self.raise_on_backtransf_fail,
+            )
 
         if self.use_cartesian_distance and self.interp_method == "ric":
             string = interp()

@@ -1,7 +1,7 @@
 """Coordinate generation and transformation tools for FSM optimization."""
 
 import itertools
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import networkx as nx
 import numpy as np
@@ -31,9 +31,16 @@ EIGENVAL_CUTOFF = 1e-8
 class Coordinates:
     """Base class for internal coordinate systems used in FSM."""
 
-    def __init__(self, atoms1: Atoms, atoms2: Optional[Atoms] = None, verbose: bool = False) -> None:
+    def __init__(
+        self,
+        atoms1: Atoms,
+        atoms2: Atoms | None = None,
+        verbose: bool = False,
+        raise_on_backtransf_fail: bool = True,
+    ) -> None:
         self.atoms1 = atoms1
         self.atoms2 = atoms2
+        self.raise_on_backtransf_fail = raise_on_backtransf_fail
         c = atoms1.constraints  # constraint indicies must be identical between R&P therefor only one is needed
         if len(c) > 0:
             self.fixed_atoms = c[0].get_indices()
@@ -63,7 +70,10 @@ class Coordinates:
         """Return internal coordinate values from Cartesian positions."""
         xyzb = xyz * angs_to_bohr
         # return np.array([coord.value(xyzb) for coord in self.coords.values()], dtype=np.float64)
-        return np.fromiter((coord.value(xyzb) for coord in self.coords.values()), dtype=np.float64)
+        return np.fromiter(
+            (coord.value(xyzb) for coord in self.coords.values()),
+            dtype=np.float64,
+        )
 
     def dqprint(self, atoms1: Atoms, atoms2: Atoms) -> None:
         """Print differences in internal coordinates between two structures."""
@@ -93,7 +103,11 @@ class Coordinates:
         evals, evecs = np.linalg.eigh(Bprim @ Bprim.T)
         return evecs[:, evals > EIGENVAL_CUTOFF]
 
-    def x(self, xyz: NDArray[np.float64], qtarget: NDArray[np.float64]) -> NDArray[np.float64]:
+    def x(
+        self,
+        xyz: NDArray[np.float64],
+        qtarget: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         """Back-transform internal coordinate displacements to Cartesian updates."""
         xyz1 = xyz.copy()
 
@@ -150,6 +164,10 @@ class Coordinates:
                     print(f"\tRMS(dx) = {rms_dx:10.5e}")
                 if self.verbose:
                     print(f"\tRMS(dq) = {rms_dq:10.5e}")
+                if self.raise_on_backtransf_fail:
+                    raise RuntimeError(
+                        f"Back transformation did not converge after {MAX_ITERATIONS} iterations.",
+                    )
 
                 return np.array(xyz_backup, dtype=np.float64)
 
@@ -177,13 +195,23 @@ class Cartesian(Coordinates):
 class Redundant(Coordinates):
     """Redundant internal coordinate system including bond, angle, torsion, etc."""
 
-    def checkstre(self, A: NDArray[np.float64], B: NDArray[np.float64], eps: float = 1e-08) -> bool:  # noqa: N803
+    def checkstre(
+        self,
+        A: NDArray[np.float64],  # noqa: N803
+        B: NDArray[np.float64],  # noqa: N803
+        eps: float = 1e-08,
+    ) -> bool:
         """Check if distance between two atoms is significant (non-zero within tolerance)."""
         v0 = A - B
         n = np.maximum(1e-12, v0.dot(v0))
         return n >= eps
 
-    def checkangle(self, A: NDArray[np.float64], B: NDArray[np.float64], C: NDArray[np.float64]) -> bool:  # noqa: N803
+    def checkangle(
+        self,
+        A: NDArray[np.float64],  # noqa: N803
+        B: NDArray[np.float64],  # noqa: N803
+        C: NDArray[np.float64],  # noqa: N803
+    ) -> bool:
         """Check if angle defined by three atoms is physically valid."""
         return self.checkstre(A, B) and self.checkstre(B, C)
 
@@ -197,14 +225,24 @@ class Redundant(Coordinates):
         """Check if torsion angle defined by four atoms is physically valid."""
         return self.checkstre(A, B) and self.checkstre(B, C) and self.checkstre(C, D)
 
-    def get_fragments(self, A: NDArray[np.int_]) -> List[NDArray[np.int_]]:  # noqa: N803
+    def get_fragments(
+        self,
+        A: NDArray[np.int_],  # noqa: N803
+    ) -> list[NDArray[np.int_]]:
         """Return list of fragments as connected components in adjacency matrix."""
         G: nx.Graph = nx.to_networkx_graph(A)
         return [np.array(list(d)) for d in nx.connected_components(G)]
 
     def connectivity(
-        self, atoms: Atoms
-    ) -> Tuple[List[NDArray[np.int64]], NDArray[np.int64], NDArray[np.int64], NDArray[np.int64], NDArray[np.int64]]:
+        self,
+        atoms: Atoms,
+    ) -> tuple[
+        list[NDArray[np.int64]],
+        NDArray[np.int64],
+        NDArray[np.int64],
+        NDArray[np.int64],
+        NDArray[np.int64],
+    ]:
         """Compute connectivity matrices from atomic positions."""
         # this is done in Angstrom
         z = atoms.get_atomic_numbers()
@@ -429,12 +467,12 @@ class Redundant(Coordinates):
                 to_delete.append(name)
             if ("tors" in name) and (np.cos(q1[i]) < -tors_thresh or np.cos(q2[i]) < -tors_thresh):
                 to_delete.append(name)
-                to_add["stre_{}_{}".format(coord.a, coord.d)] = Distance(coord.a, coord.d)
+                to_add[f"stre_{coord.a}_{coord.d}"] = Distance(coord.a, coord.d)
             if ("linearbnd" in name) and ((np.cos(q1[i]) < lb_thresh) or (np.cos(q2[i]) < lb_thresh)):
                 basecoord = name[:-2]
                 to_delete.append(basecoord + "_0")
                 to_delete.append(basecoord + "_1")
-                to_add["bend_{}_{}_{}".format(coord.a, coord.b, coord.c)] = Angle(coord.a, coord.b, coord.c)
+                to_add[f"bend_{coord.a}_{coord.b}_{coord.c}"] = Angle(coord.a, coord.b, coord.c)
             if "linearbnd" in name:
                 a, b, c = coord.a, coord.b, coord.c
                 ang = Angle(a, b, c)
@@ -444,7 +482,7 @@ class Redundant(Coordinates):
                     basecoord = name[:-2]
                     to_delete.append(basecoord + "_0")
                     to_delete.append(basecoord + "_1")
-                    to_add["bend_{}_{}_{}".format(coord.a, coord.b, coord.c)] = Angle(coord.a, coord.b, coord.c)
+                    to_add[f"bend_{coord.a}_{coord.b}_{coord.c}"] = Angle(coord.a, coord.b, coord.c)
 
         for k in set(to_delete):
             del coords[k]
