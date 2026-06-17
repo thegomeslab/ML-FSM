@@ -1,39 +1,15 @@
-"""Test FSM script on a sample reaction using EMT calculator."""
+"""Smoke test: run the FSM end-to-end in-process with default RIC interpolation."""
 
-import os
-import shutil
-import subprocess
-import sys
-import tempfile
+from __future__ import annotations
+
 from pathlib import Path
 
+from tests.conftest import run_fsm
 
-def test_fsm_script_diels_alder() -> None:
-    """Run fsm_example.py on the Diels-Alder example default parameters with the EMT calculator."""
-    example_dir = Path("examples/data/06_diels_alder")
-    script_path = Path("examples/fsm_example.py")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Copy the example into a temporary directory
-        rxn_dir = Path(tmpdir) / "06_diels_alder"
-        shutil.copytree(example_dir, rxn_dir)
-
-        env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
-        # Run the FSM script
-
-        result = subprocess.run(
-            [sys.executable, str(script_path), str(rxn_dir), "--calculator", "emt", "--suffix", "test_fsm_script"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env=env,
-        )
-
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
-
-        # Check that the script completed without error
-        assert result.returncode == 0
-        assert "Gradient calls:" in result.stdout
+def test_fsm_default_ric(reaction_dir: Path) -> None:
+    """run_fsm completes on Diels-Alder with default parameters and EMT, writing fsm.out."""
+    run_fsm(reaction_dir, calculator="emt", interp="ric", nnodes_min=5, ninterp=20, suffix="script")
+    outdir = next(reaction_dir.glob("fsm_interp_*_script"))
+    assert (outdir / "fsm.out").is_file()
+    assert "Total gradient calls" in (outdir / "fsm.out").read_text()
