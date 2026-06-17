@@ -3,7 +3,7 @@
 
 This script runs a small, deterministic Freezing String Method calculation with
 the ASE EMT calculator for each interpolation style and records the final
-optimized string (per-node coordinates and energies) plus the gradient count.
+optimized string (per-node coordinates and energies).
 
 It is deliberately driver-stable: it imports only the core ``mlfsm`` API and can
 be pointed at an arbitrary checkout's source tree via ``--src``.  The
@@ -34,7 +34,7 @@ MAXLS = 3
 DMAX = 0.05
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_REACTION = HERE.parent / "data" / "reactions" / "diels_alder"
+DEFAULT_REACTION = HERE.parent.parent / "examples" / "data" / "06_diels_alder"
 
 
 def _fingerprint_one(reaction_dir: Path, interp: str) -> dict:
@@ -63,7 +63,6 @@ def _fingerprint_one(reaction_dir: Path, interp: str) -> dict:
         "symbols": path[0].get_chemical_symbols(),
         "coords": [atoms.get_positions().tolist() for atoms in path],
         "energies": list(energies),
-        "ngrad": int(string.ngrad),
     }
 
 

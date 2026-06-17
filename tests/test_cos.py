@@ -10,12 +10,12 @@ from mlfsm.coords import Redundant
 from mlfsm.cos import FreezingString
 from mlfsm.interp import LST, RIC, Linear
 from mlfsm.utils import load_xyz
-from tests.conftest import REACTIONS
+from tests.conftest import EXAMPLE_REACTION
 
 
 @pytest.fixture
 def endpoints() -> tuple[Atoms, Atoms]:
-    return load_xyz(REACTIONS / "diels_alder")
+    return load_xyz(EXAMPLE_REACTION)
 
 
 @pytest.mark.parametrize(

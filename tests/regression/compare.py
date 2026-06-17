@@ -1,16 +1,14 @@
 #!/usr/bin/env python
-"""Compare two FSM fingerprints (see fingerprint.py) and report differences.
+"""Compare two FSM fingerprints (see fingerprint.py) and report output changes.
 
-Distinguishes the two cases the regression check exists to tell apart:
-
-* **Output change** — final coordinates or energies differ (beyond a tight
-  tolerance), or the string structure (atoms/node count) changed.  This fails
-  the check.
-* **Efficiency-only change** — structures and energies match but the gradient
-  count differs.  Reported as a note; it does *not* fail the check.
+The FSM is deterministic, so for a given input the final string is fully
+determined by the source code.  A change either leaves the output identical or
+it changes the structures/energies — there is no "efficiency-only" middle
+ground, since an identical path implies an identical amount of work.  This
+script therefore reports a single thing: did the FSM output change?
 
 Because the baseline and candidate are produced on the same machine, the
-comparison can be tight (no cross-platform float drift to absorb).
+comparison is tight (no cross-platform float drift to absorb).
 
 Usage
 -----
@@ -39,34 +37,23 @@ def _max_abs_diff(a: list, b: list) -> float:
     return float(np.max(np.abs(np.asarray(a, dtype=float) - np.asarray(b, dtype=float))))
 
 
-def _compare_one(interp: str, base: dict, cand: dict) -> tuple[list[str], list[str]]:
-    """Return (failures, notes) for one interpolation style."""
-    failures: list[str] = []
-    notes: list[str] = []
-
+def _compare_one(interp: str, base: dict, cand: dict) -> list[str]:
+    """Return the list of output changes for one interpolation style."""
     if base["symbols"] != cand["symbols"]:
-        failures.append(f"[{interp}] atom symbols changed")
-        return failures, notes
+        return [f"[{interp}] atom symbols changed"]
 
     n_base, n_cand = len(base["coords"]), len(cand["coords"])
     if n_base != n_cand:
-        failures.append(f"[{interp}] node count changed: base={n_base} candidate={n_cand} (output change)")
-        return failures, notes
+        return [f"[{interp}] node count changed: base={n_base} candidate={n_cand}"]
 
+    failures: list[str] = []
     coord_diff = _max_abs_diff(base["coords"], cand["coords"])
     energy_diff = _max_abs_diff(base["energies"], cand["energies"])
-
     if coord_diff > COORD_ATOL:
         failures.append(f"[{interp}] coordinates changed: max |Δ| = {coord_diff:.3e} Å (tol {COORD_ATOL:.0e})")
     if energy_diff > ENERGY_ATOL:
         failures.append(f"[{interp}] energies changed: max |Δ| = {energy_diff:.3e} eV (tol {ENERGY_ATOL:.0e})")
-
-    if base["ngrad"] != cand["ngrad"]:
-        notes.append(
-            f"[{interp}] gradient count changed: base={base['ngrad']} candidate={cand['ngrad']} (efficiency-only)"
-        )
-
-    return failures, notes
+    return failures
 
 
 def main() -> int:
@@ -78,29 +65,21 @@ def main() -> int:
     base = json.loads(args.base.read_text())["results"]
     cand = json.loads(args.candidate.read_text())["results"]
 
-    all_failures: list[str] = []
-    all_notes: list[str] = []
+    failures: list[str] = []
     for interp in INTERPS:
         if interp not in base or interp not in cand:
-            all_failures.append(f"[{interp}] missing from one fingerprint")
+            failures.append(f"[{interp}] missing from one fingerprint")
             continue
-        failures, notes = _compare_one(interp, base[interp], cand[interp])
-        all_failures += failures
-        all_notes += notes
+        failures += _compare_one(interp, base[interp], cand[interp])
 
-    for note in all_notes:
-        print(f"NOTE  {note}")
-
-    if all_failures:
-        print("\nFSM OUTPUT CHANGED relative to baseline:")
-        for f in all_failures:
+    if failures:
+        print("FSM OUTPUT CHANGED relative to baseline:")
+        for f in failures:
             print(f"  FAIL  {f}")
         print("\nIf this change is intended, this is expected — review the differences above.")
         return 1
 
-    print("\nFSM output matches baseline (structures and energies unchanged).")
-    if all_notes:
-        print("Only efficiency (gradient count) differs.")
+    print("FSM output matches baseline (structures and energies unchanged).")
     return 0
 
 

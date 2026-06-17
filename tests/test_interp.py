@@ -8,12 +8,12 @@ from ase import Atoms
 
 from mlfsm.interp import RIC, Linear
 from mlfsm.utils import load_xyz
-from tests.conftest import REACTIONS
+from tests.conftest import EXAMPLE_REACTION
 
 
 @pytest.fixture
 def endpoints() -> tuple[Atoms, Atoms]:
-    return load_xyz(REACTIONS / "diels_alder")
+    return load_xyz(EXAMPLE_REACTION)
 
 
 def test_linear_interpolate_shape_and_endpoints() -> None:
