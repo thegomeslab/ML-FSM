@@ -235,7 +235,7 @@ if __name__ == "__main__":
         "--stepsize",
         type=float,
         default=0.0,
-        help="Stepsize in Angstrom used in interpolation. Overrides and sets nnodes_min based on Cartesian distance.",
+        help="Cartesian step size (Angstrom). If > 0, sets the step size explicitly and overrides nnodes_min.",
     )
     parser.add_argument("--ninterp", type=int, default=50, help="Number of interpolation points between nodes")
     parser.add_argument("--suffix", type=str, default=None, help="Suffix for output directory")

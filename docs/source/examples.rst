@@ -65,9 +65,10 @@ The ``FixAtoms`` constraint is propagated automatically through the FSM;
 Specifying a Step Size Directly
 ---------------------------------
 
-Instead of setting ``nnodes_min``, you can pass an explicit Cartesian step
-size (in Angstrom). The number of nodes is then determined automatically from
-the path arc length.
+Instead of deriving the step size from ``nnodes_min``, you can pass an explicit
+Cartesian step size (in Angstrom). Both options feed the same node-placement
+logic; they differ only in how the step size is obtained, and the number of
+nodes is then determined automatically from the path length.
 
 .. code-block:: python
 
