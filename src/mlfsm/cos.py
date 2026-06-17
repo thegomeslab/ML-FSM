@@ -45,8 +45,10 @@ class FreezingString:
         Product geometry. Must have the same atom ordering as ``reactant``.
     nnodes_min : int, optional
         Nominal number of string nodes used to determine the interpolation
-        step size.  The actual node count may differ slightly depending on
-        the path arc length. Default is 10.
+        step size: the initial path arc length is divided by ``nnodes_min``.
+        Frontier nodes are then placed using the same one-structure-at-a-time
+        scheme as ``stepsize`` (see below), so the actual node count may differ
+        slightly depending on the path curvature. Default is 10.
     interp_method : {"ric", "lst", "cart"}
         Interpolation scheme used to generate new frontier nodes:
 
@@ -58,9 +60,13 @@ class FreezingString:
         which frontier nodes are selected. Default is 100.
     stepsize : float, optional
         If > 0, sets the Cartesian step size (Å) explicitly and ignores
-        ``nnodes_min``. The step size is measured along the Cartesian
-        arc length of the initial linear interpolation. Default is 0.0
-        (derive step size from ``nnodes_min``).
+        ``nnodes_min``. Default is 0.0 (derive step size from ``nnodes_min``).
+        Whether derived or explicit, the step size drives the same growth
+        logic for ``interp_method="ric"``: the interpolated internal-coordinate
+        path is back-transformed one structure at a time, accumulating Cartesian
+        arc length, and the first structure that exceeds the step size becomes
+        the new frontier node. Only this handful of structures is
+        back-transformed per growth step.
     raise_on_backtransf_fail : bool, optional
         If ``True``, raise a RuntimeError if the RIC back transformation fails
         to converge during interpolation or node growth. Default is ``True``.
@@ -93,7 +99,7 @@ class FreezingString:
         self.interp_method = interp_method
         self.nnodes_min = int(nnodes_min)
         self.ninterp = int(ninterp)
-        self.use_cartesian_distance = True if stepsize > 0 else False
+        self.explicit_stepsize = stepsize > 0
         self.raise_on_backtransf_fail = raise_on_backtransf_fail
 
         if interp_method == "cart":
@@ -108,7 +114,7 @@ class FreezingString:
         self.atoms = reactant.copy()
         self.natoms = len(self.atoms.numbers)
 
-        if not self.use_cartesian_distance:
+        if not self.explicit_stepsize:
             _interp_init = self.interp(reactant, product, ninterp=self.ninterp)
             s = calculate_arc_length(_interp_init())
             self.dist = s[-1]
@@ -207,7 +213,7 @@ class FreezingString:
         r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
-        return_q = self.use_cartesian_distance
+        return_q = self.interp_method == "ric"
         interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp, return_q=return_q)
         try:
             self.coordsobj = interp.coords
@@ -218,7 +224,7 @@ class FreezingString:
                 raise_on_backtransf_fail=self.raise_on_backtransf_fail,
             )
 
-        if self.use_cartesian_distance and self.interp_method == "ric":
+        if self.interp_method == "ric":
             string = interp()
             s = calculate_arc_length(string)
             cs = CubicSpline(s, string, axis=0)
@@ -238,7 +244,7 @@ class FreezingString:
                 r_next = interp.coords.x(r_prev, qtarget)
                 _, r_next = project_trans_rot(r_xyz.reshape(-1, 3), r_next)
                 r_next = r_next.reshape(-1, 3)
-                r_s = distance(r_xyz, r_next)
+                r_s += distance(r_prev, r_next)
                 if r_s > self.stepsize:
                     break
                 r_prev = r_next.copy()
@@ -277,7 +283,7 @@ class FreezingString:
                 p_next = interp.coords.x(p_prev, qtarget)
                 _, p_next = project_trans_rot(p_xyz.reshape(-1, 3), p_next)
                 p_next = p_next.reshape(-1, 3)
-                p_s = distance(p_xyz, p_next)
+                p_s += distance(p_prev, p_next)
                 if p_s > self.stepsize:
                     break
                 p_prev = p_next.copy()
