@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import time
 from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, TextIO
@@ -139,6 +140,7 @@ class FSMOutput:
         self._f: TextIO = self._path.open("w", encoding="utf-8")
         self._current_iteration: int = 0
         self._optimizing_written: bool = False
+        self._start_time: float = time.perf_counter()
 
     def close(self) -> None:
         """Flush and close the output file."""
@@ -429,6 +431,8 @@ class FSMOutput:
         _write_section(f, "CALCULATION COMPLETE")
         f.write(f"\n   Total iterations       : {string.iteration}\n")
         f.write(f"   Total gradient calls   : {string.ngrad}\n")
+        elapsed = time.perf_counter() - self._start_time
+        f.write(f"   Total wall time        : {elapsed:.2f} s ({datetime.timedelta(seconds=int(elapsed))})\n")
 
         if not valid_pairs:
             f.write("\n   No energies available.\n")
