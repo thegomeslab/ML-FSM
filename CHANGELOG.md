@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   back-transformation previously used for `nnodes_min` (significant speedup for
   large systems). Node selection now uses cumulative arc length in both modes.
 
+- Removed torchmd custom calculator from examples and corresponding checkpoint file
+
 ## [1.0.1] - 2026
 ### Added
 - Fixed atoms functionality
