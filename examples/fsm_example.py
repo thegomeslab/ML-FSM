@@ -155,7 +155,7 @@ def run_fsm(
         predictor = pretrained_mlip.get_predict_unit("uma-s-1", device=dev)
         calc = FAIRChemCalculator(predictor, task_name="omol")
     elif calculator == "torchmd":
-        from custom_calculator_torchmd import TMDCalculator
+        from custom_calculator_torchmd import TMDCalculator  # type: ignore [import-not-found]
 
         calc = TMDCalculator()
     elif calculator == "aimnet2":

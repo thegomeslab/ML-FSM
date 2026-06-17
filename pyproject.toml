@@ -106,6 +106,9 @@ ignore = [
 # Tests favor terseness: skip docstring, magic-value, type-checking-block, and
 # mutable-class-attr rules that add noise without value in test code.
 "tests/*" = ["D", "PLR2004", "TC001", "TC002", "TC003", "RUF012"]
+# Regression scripts import mlfsm only after manipulating sys.path (--src), so
+# imports are intentionally function-local (PLC0415).
+"tests/regression/*" = ["D", "PLR2004", "PLC0415", "TC001", "TC002", "TC003"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
