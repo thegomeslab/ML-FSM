@@ -1,0 +1,42 @@
+# Detects whether a pull request changes FSM numerical output (structures /
+# energies) versus the target branch, as opposed to a pure efficiency change.
+# Both versions run on the same runner, so the comparison is tight.
+name: Output Regression
+
+on:
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      # Candidate (the PR branch) — also provides the stable fingerprint/compare scripts.
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          path: pr
+
+      # Baseline (the branch the PR targets, e.g. main).
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Install runtime dependencies once; mlfsm itself is imported from each
+      # checkout's src/ via --src, so no per-branch reinstall is required.
+      - name: Install dependencies
+        run: pip install ./pr
+
+      - name: Fingerprint baseline (${{ github.base_ref }})
+        run: python pr/tests/regression/fingerprint.py --src base/src --out base.json
+
+      - name: Fingerprint PR
+        run: python pr/tests/regression/fingerprint.py --src pr/src --out pr.json
+
+      - name: Compare
+        run: python pr/tests/regression/compare.py base.json pr.json
