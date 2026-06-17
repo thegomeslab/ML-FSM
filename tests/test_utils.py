@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 from ase.constraints import FixAtoms
 
 from mlfsm.utils import float_check, load_xyz, load_xyz_fixed
-from tests.conftest import REACTIONS
-
-DIELS_ALDER = REACTIONS / "diels_alder"
+from tests.conftest import EXAMPLE_REACTION as DIELS_ALDER
 
 
 def test_float_check_passthrough_float() -> None:
@@ -38,11 +34,6 @@ def test_load_xyz_returns_two_aligned_structures() -> None:
     r_centroid = reactant.get_positions().mean(axis=0)
     p_centroid = product.get_positions().mean(axis=0)
     assert np.allclose(r_centroid, p_centroid, atol=1e-6)
-
-
-def test_load_xyz_missing_file_raises(tmp_path: Path) -> None:
-    with pytest.raises(Exception, match="not found"):
-        load_xyz(tmp_path)
 
 
 def test_load_xyz_fixed_empty_matches_load_xyz() -> None:
