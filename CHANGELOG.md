@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Removed torchmd custom calculator from examples and corresponding checkpoint file
+- Update tests setup, implemented unit tests, regression CI tests, integration tests
 
 ## [1.0.1] - 2026
 ### Added
