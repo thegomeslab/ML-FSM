@@ -1,9 +1,4 @@
-"""End-to-end FSM runs driven by the Cartesian optimizer (EMT).
-
-Covers both interpolants the user expects to keep working alongside RIC (cart and
-LST) and both scipy minimizers used in practice: the bounded L-BFGS-B (default,
-respects the per-node trust radius) and the gradient-only CG.
-"""
+"""End-to-end FSM runs driven by the Cartesian optimizer (EMT)."""
 
 from __future__ import annotations
 
