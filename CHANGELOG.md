@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Removed torchmd custom calculator from examples and corresponding checkpoint file
+- Update tests setup, implemented unit tests, regression CI tests, integration tests
+
 ## [1.0.1] - 2026
 ### Added
 - Fixed atoms functionality

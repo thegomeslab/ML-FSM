@@ -36,7 +36,6 @@ def test_ric_interpolate_return_q_endpoints(endpoints: tuple[Atoms, Atoms]) -> N
 
     n_ics = len(ric.coords.keys)
     assert qpath.shape == (8, n_ics)
-    # Internal-coordinate path starts at q(reactant) and ends at q(product),
     # up to the torsion ±pi wrapping applied inside interpolate().
     q1 = ric.coords.q(reactant.get_positions())
     q2 = ric.coords.q(product.get_positions())
@@ -53,12 +52,7 @@ def test_ric_interpolate_cartesian_shape(endpoints: tuple[Atoms, Atoms]) -> None
 
 
 def _hooh(phi_deg: float) -> Atoms:
-    """Hydrogen peroxide (H-O-O-H) with the H-O-O-H dihedral set to ``phi_deg``.
-
-    The two oxygens lie on the x-axis; the terminal H atom is rotated about that
-    axis so the only internal coordinate that differs between two ``_hooh`` calls
-    is the dihedral.
-    """
+    """Hydrogen peroxide (H-O-O-H) with the H-O-O-H dihedral set to ``phi_deg``."""
     phi = np.radians(phi_deg)
     o1 = np.array([0.0, 0.0, 0.0])
     o2 = np.array([1.46, 0.0, 0.0])
@@ -78,4 +72,4 @@ def test_ric_interpolate_wraps_torsion_across_pi() -> None:
     assert tors, "expected H-O-O-H to define a torsion coordinate"
     for i in tors:
         total = abs(qpath[-1, i] - qpath[0, i])
-        assert 0 < total < np.pi  # short arc, not the wrapped long way
+        assert 0 < total < np.pi  
