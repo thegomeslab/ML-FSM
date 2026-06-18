@@ -72,4 +72,4 @@ def test_ric_interpolate_wraps_torsion_across_pi() -> None:
     assert tors, "expected H-O-O-H to define a torsion coordinate"
     for i in tors:
         total = abs(qpath[-1, i] - qpath[0, i])
-        assert 0 < total < np.pi  
+        assert 0 < total < np.pi
