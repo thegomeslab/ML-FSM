@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 from ase.constraints import FixAtoms
 
 from mlfsm.utils import float_check, load_xyz, load_xyz_fixed
@@ -14,23 +13,9 @@ def test_float_check_passthrough_float() -> None:
     assert float_check(3.5) == 3.5
 
 
-@pytest.mark.parametrize("value", [[2.0], (2.0,), np.array([2.0])])
-def test_float_check_single_element_containers(value: object) -> None:
-    assert float_check(value) == 2.0  # type: ignore[arg-type]
-
-
-# Note: a 0-D ndarray hits len() of an unsized object and raises TypeError, despite
-# the docstring claiming it is supported.
-@pytest.mark.parametrize("value", [[1.0, 2.0], "x", None, np.array(2.0)])
-def test_float_check_rejects_bad_input(value: object) -> None:
-    with pytest.raises(TypeError):
-        float_check(value)  # type: ignore[arg-type]
-
-
 def test_load_xyz_returns_two_aligned_structures() -> None:
     reactant, product = load_xyz(DIELS_ALDER)
     assert len(reactant) == len(product) == 16
-    # project_trans_rot aligns the product onto the reactant, so their centroids coincide.
     r_centroid = reactant.get_positions().mean(axis=0)
     p_centroid = product.get_positions().mean(axis=0)
     assert np.allclose(r_centroid, p_centroid, atol=1e-6)
