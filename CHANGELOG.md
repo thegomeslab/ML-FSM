@@ -12,12 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   path one structure at a time, removing the redundant full-ensemble
   back-transformation previously used for `nnodes_min` (significant speedup for
   large systems). Node selection now uses cumulative arc length in both modes.
-
 - Removed torchmd custom calculator from examples and corresponding checkpoint file
-<<<<<<< HEAD
-=======
 - Update tests setup, implemented unit tests, regression CI tests, integration tests
->>>>>>> 96715d7 (cut down comments and tests, add opt and coords tests, add changelog entry)
+- Unified the RIC growth path so `nnodes_min` and explicit `stepsize` runs both
+  select frontier nodes by back-transforming the interpolated internal-coordinate
+  path one structure at a time, removing the redundant full-ensemble
+  back-transformation previously used for `nnodes_min` (significant speedup for
+  large systems). Node selection now uses cumulative arc length in both modes.
 
 ## [1.0.1] - 2026
 ### Added
