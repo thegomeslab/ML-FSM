@@ -39,5 +39,6 @@ def test_nnodes_min_matches_equivalent_stepsize(endpoints: tuple[Atoms, Atoms]) 
     for sa, sb in ((a.r_string, b.r_string), (a.p_string, b.p_string)):
         assert np.array_equal(sa[-1].get_positions(), sb[-1].get_positions())
     for ta, tb in ((a.r_tangent[-1], b.r_tangent[-1]), (a.p_tangent[-1], b.p_tangent[-1])):
-        assert ta is not None and tb is not None
+        assert ta is not None
+        assert tb is not None
         assert np.array_equal(ta, tb)

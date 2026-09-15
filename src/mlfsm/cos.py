@@ -182,7 +182,7 @@ class FreezingString:
                     f.write(f"{atom} {x:.8f} {y:.8f} {z:.8f}\n")
 
     def _march(
-            self, coords: Redundant, qstring: "NDArray[Any]", start_xyz: "NDArray[Any]"
+        self, coords: Redundant, qstring: "NDArray[Any]", start_xyz: "NDArray[Any]"
     ) -> tuple["NDArray[Any]", int, float]:
         """Back-transform ``qstring`` frames outward from ``start_xyz`` until one step-size away.
 
@@ -196,18 +196,18 @@ class FreezingString:
             ``(xyz, idx, s)``: aligned Cartesian positions of shape ``(natoms, 3)``,
             the index of that frame in ``qstring``, and its distance from the start.
         """
-        start_xyz = start_xyz.reshape(-1,3)
+        start_xyz = start_xyz.reshape(-1, 3)
         prev_xyz, prev_idx, prev_s = start_xyz, 0, 0.0
-        for idx in range(1, len(qstring)-1):
+        for idx in range(1, len(qstring) - 1):
             trial_xyz = coords.x(prev_xyz, qstring[idx])
-            next_xyz = project_trans_rot(start_xyz, trial_xyz)[1].reshape(-1,3)
-            next_s = distance(start_xyz,next_xyz)
+            next_xyz = project_trans_rot(start_xyz, trial_xyz)[1].reshape(-1, 3)
+            next_s = distance(start_xyz, next_xyz)
             if next_s > self.stepsize:
-                if prev_idx > 0 and self.stepsize - prev_s <=next_s -self.stepsize:
+                if prev_idx > 0 and self.stepsize - prev_s <= next_s - self.stepsize:
                     return prev_xyz, prev_idx, prev_s
                 return next_xyz, idx, next_s
             prev_xyz, prev_idx, prev_s = next_xyz, idx, next_s
-        return prev_xyz, prev_idx, prev_s #this would just return the final xyz in the step if it didnt find one
+        return prev_xyz, prev_idx, prev_s  # this would just return the final xyz in the step if it didnt find one
 
     @staticmethod
     def _ric_tangent(coords: Redundant, dqds: "NDArray[Any]", xyz: "NDArray[Any]") -> "NDArray[Any]":
@@ -215,8 +215,8 @@ class FreezingString:
         Bprim = coords.b_matrix(xyz)
         U = coords.u_matrix(Bprim)
         B = U.T @ Bprim
-        BT_inv = np.linalg.pinv(B@B.T)@B
-        return normalize(BT_inv.T@(U.T@dqds))
+        BT_inv = np.linalg.pinv(B @ B.T) @ B
+        return normalize(BT_inv.T @ (U.T @ dqds))
 
     def grow(self) -> None:
         """Grow the string by adding one new frontier node to each end.
