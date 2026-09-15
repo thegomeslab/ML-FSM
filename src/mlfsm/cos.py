@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class FreezingString:
-        """Implements the Freezing String Method (FSM) for transition state guess generation.
+    """Implements the Freezing String Method (FSM) for transition state guess generation.
 
     The FSM grows two strings from the reactant and product endpoints toward each
     other. At each iteration a new frontier node is placed by taking a step along
@@ -184,7 +184,7 @@ class FreezingString:
     def _march(
             self, coords: Redundant, qstring: "NDArray[Any]", start_xyz: "NDArray[Any]"
     ) -> tuple["NDArray[Any]", int, float]:
-                """Back-transform ``qstring`` frames outward from ``start_xyz`` until one step-size away.
+        """Back-transform ``qstring`` frames outward from ``start_xyz`` until one step-size away.
 
         Each frame is seeded from the previous one and stops as soon as a frame lies
         farther than ``stepsize`` from the start. Of the two frames bracketing
