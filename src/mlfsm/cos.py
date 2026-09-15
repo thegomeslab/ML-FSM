@@ -93,7 +93,6 @@ class FreezingString:
         self.interp_method = interp_method
         self.nnodes_min = int(nnodes_min)
         self.ninterp = int(ninterp)
-        self.use_cartesian_distance = True if stepsize > 0 else False
         self.raise_on_backtransf_fail = raise_on_backtransf_fail
 
         if interp_method == "cart":
@@ -108,25 +107,19 @@ class FreezingString:
         self.atoms = reactant.copy()
         self.natoms = len(self.atoms.numbers)
 
-        if not self.use_cartesian_distance:
-            _interp_init = self.interp(reactant, product, ninterp=self.ninterp)
-            s = calculate_arc_length(_interp_init())
-            self.dist = s[-1]
-            self.stepsize = self.dist / self.nnodes_min
-        else:
-            _interp_init = Linear(reactant, product, ninterp=self.ninterp)
-            s = calculate_arc_length(_interp_init())
-            self.dist = s[-1]
+        r_xyz, p_xyz = project_trans_rot(reactant.get_positions(), product.get_positions())
+        self.dist = distance(r_xyz, p_xyz)
+        if stepsize > 0:
             self.stepsize = float(stepsize)
             self.nnodes_min = int(self.dist / self.stepsize)
+        else:
+            self.stepsize = self.dist / self.nnodes_min
 
         self.init_coordsobj: Optional[Redundant] = None
         if interp_method == "ric":
-            self.init_coordsobj = (
-                _interp_init.coords if isinstance(_interp_init, RIC) else RIC(reactant, product, ninterp=2).coords
+            self.init_coordsobj = Redundant(
+                reactant, product, verbose=False, raise_on_backtransf_fail=self.raise_on_backtransf_fail
             )
-        else:
-            self.init_coordsobj = None
 
         logger.info(f"NNODES_MIN: {self.nnodes_min}")
         logger.info(f"DIST: {self.dist:.3f} STEPSIZE: {self.stepsize:.3f}")
@@ -189,6 +182,30 @@ class FreezingString:
                     x, y, z = map(float, xyz)
                     f.write(f"{atom} {x:.8f} {y:.8f} {z:.8f}\n")
 
+    def _march(
+            self, coords: Redundant, qstring: "NDArray[Any]", start_xyz: "NDArray[Any]"
+    ) -> tuple["NDArray[Any]", int, float]:
+        start_xyz = start_xyz.reshape(-1,3)
+        prev_xyz, prev_idx, prev_s = start_xyz, 0, 0.0
+        for idx in range(1, len(qstring)-1):
+            trial_xyz = coords.x(prev_xyz, qstring[idx])
+            next_xyz = project_trans_rot(start_xyz, trial_xyz)[1].reshape(-1,3)
+            next_s = distance(start_xyz,next_xyz)
+            if next_s > self.stepsize:
+                if prev_idx > 0 and self.stepsize - prev_s <=next_s -self.stepsize:
+                    return prev_xyz, prev_idx, prev_s
+                return next_xyz, idx, next_s
+            prev_xyz, prev_idx, prev_s = next_xyz, idx, next_s
+        return prev_xyz, prev_idx, prev_s #this would just return the final xyz in the step if it didnt find one
+
+    @staticmethod
+    def _ric_tangent(coords: Redundant, dqds: "NDArray[Any]", xyz: "NDArray[Any]") -> "NDArray[Any]":
+        Bprim = coords.b_matrix(xyz)
+        U = coords.u_matrix(Bprim)
+        B = U.T @ Bprim
+        BT_inv = np.linalg.pinv(B@B.T)@B
+        return normalize(BT_inv.T@(U.T@dqds))
+
     def grow(self) -> None:
         """Grow the string by adding one new frontier node to each end.
 
@@ -207,8 +224,7 @@ class FreezingString:
         r_xyz, p_xyz = project_trans_rot(r_atoms.get_positions(), p_atoms.get_positions())
         r_xyz, p_xyz = r_xyz.flatten(), p_xyz.flatten()
 
-        return_q = self.use_cartesian_distance
-        interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp, return_q=return_q)
+        interp = self.interp(r_atoms, p_atoms, ninterp=self.ninterp, return_q=self.interp_method == "ric")
         try:
             self.coordsobj = interp.coords
         except Exception:
@@ -218,8 +234,8 @@ class FreezingString:
                 raise_on_backtransf_fail=self.raise_on_backtransf_fail,
             )
 
-        if self.use_cartesian_distance and self.interp_method == "ric":
-            string = interp()
+        if self.interp_method == "ric":
+            qstring = interp()
             s = calculate_arc_length(string)
             cs = CubicSpline(s, string, axis=0)
 
@@ -231,34 +247,14 @@ class FreezingString:
             if self.output is not None:
                 self.output.write_current_frontier_node("r", r_atoms)
 
-            r_prev = r_xyz.copy().reshape(-1, 3)
-            r_idx = 1
-            r_s = 0.0
-            for qtarget in string[1:-1]:
-                r_next = interp.coords.x(r_prev, qtarget)
-                _, r_next = project_trans_rot(r_xyz.reshape(-1, 3), r_next)
-                r_next = r_next.reshape(-1, 3)
-                r_s = distance(r_xyz, r_next)
-                if r_s > self.stepsize:
-                    break
-                r_prev = r_next.copy()
-                r_idx += 1
-
+            r_next, r_idx, r_s = self._march(interp.coords, qstring, r_xyz)
             r_frontier = self.atoms.copy()
             r_frontier.set_positions(r_next.reshape(-1, 3))
-
-            dqds = cs(s[r_idx], 1)
-            Bprim = interp.coords.b_matrix(r_next)
-            U = interp.coords.u_matrix(Bprim)
-            B = U.T @ Bprim
-            BT_inv = np.linalg.pinv(B @ B.T) @ B
-            dqds = U.T @ dqds
-            dxds = BT_inv.T @ dqds
 
             self.r_string += [r_frontier]
             self.r_fix += [False]
             self.r_energy += [None]
-            self.r_tangent += [normalize(dxds)]
+            self.r_tangent += [self._ric_tangent(interp.coords, cs(s[r_idx], 1), r_next)]
             self.r_nnodes = len(self.r_string)
             if self.output is not None:
                 self.output.write_frontier_node("r", r_frontier, r_s)
@@ -270,34 +266,14 @@ class FreezingString:
             if self.output is not None:
                 self.output.write_current_frontier_node("p", p_atoms)
 
-            p_prev = p_xyz.copy().reshape(-1, 3)
-            p_idx = 1
-            p_s = 0.0
-            for qtarget in string[1:-1][::-1]:
-                p_next = interp.coords.x(p_prev, qtarget)
-                _, p_next = project_trans_rot(p_xyz.reshape(-1, 3), p_next)
-                p_next = p_next.reshape(-1, 3)
-                p_s = distance(p_xyz, p_next)
-                if p_s > self.stepsize:
-                    break
-                p_prev = p_next.copy()
-                p_idx += 1
-
+            p_next, p_idx, p_s = self._march(interp.coords, qstring[::-1], p_xyz)
             p_frontier = self.atoms.copy()
             p_frontier.set_positions(p_next.reshape(-1, 3))
-
-            dqds = cs(s[p_idx], 1)
-            Bprim = interp.coords.b_matrix(p_next)
-            U = interp.coords.u_matrix(Bprim)
-            B = U.T @ Bprim
-            BT_inv = np.linalg.pinv(B @ B.T) @ B
-            dqds = U.T @ dqds
-            dxds = BT_inv.T @ dqds
 
             self.p_string += [p_frontier]
             self.p_fix += [False]
             self.p_energy += [None]
-            self.p_tangent += [normalize(dxds)]
+            self.p_tangent += [self._ric_tangent(interp.coords, cs(s[self.ninterp - 1 - p_idx], 1), p_next)]
             self.p_nnodes = len(self.p_string)
             if self.output is not None:
                 self.output.write_frontier_node("p", p_frontier, p_s)
