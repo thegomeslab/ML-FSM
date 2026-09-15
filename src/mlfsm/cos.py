@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class FreezingString:
-    """Implements the Freezing String Method (FSM) for transition state guess generation.
+        """Implements the Freezing String Method (FSM) for transition state guess generation.
 
     The FSM grows two strings from the reactant and product endpoints toward each
     other. At each iteration a new frontier node is placed by taking a step along
@@ -44,9 +44,10 @@ class FreezingString:
     product : ase.Atoms
         Product geometry. Must have the same atom ordering as ``reactant``.
     nnodes_min : int, optional
-        Nominal number of string nodes used to determine the interpolation
-        step size.  The actual node count may differ slightly depending on
-        the path arc length. Default is 10.
+        Nominal number of string nodes used to determine the step size as
+        ``D / nnodes_min``, where ``D`` is the Cartesian distance between the
+        aligned endpoints. ``nnodes_min=N`` is equivalent to ``stepsize=D/N``.
+        The actual node count may differ slightly. Default is 10.
     interp_method : {"ric", "lst", "cart"}
         Interpolation scheme used to generate new frontier nodes:
 
@@ -58,9 +59,7 @@ class FreezingString:
         which frontier nodes are selected. Default is 100.
     stepsize : float, optional
         If > 0, sets the Cartesian step size (Å) explicitly and ignores
-        ``nnodes_min``. The step size is measured along the Cartesian
-        arc length of the initial linear interpolation. Default is 0.0
-        (derive step size from ``nnodes_min``).
+        ``nnodes_min``. Default is 0.0 (derive step size from ``nnodes_min``).
     raise_on_backtransf_fail : bool, optional
         If ``True``, raise a RuntimeError if the RIC back transformation fails
         to converge during interpolation or node growth. Default is ``True``.
@@ -185,6 +184,18 @@ class FreezingString:
     def _march(
             self, coords: Redundant, qstring: "NDArray[Any]", start_xyz: "NDArray[Any]"
     ) -> tuple["NDArray[Any]", int, float]:
+                """Back-transform ``qstring`` frames outward from ``start_xyz`` until one step-size away.
+
+        Each frame is seeded from the previous one and stops as soon as a frame lies
+        farther than ``stepsize`` from the start. Of the two frames bracketing
+        ``stepsize``, the closer one is returned (never the start itself).
+
+        Returns
+        -------
+        tuple
+            ``(xyz, idx, s)``: aligned Cartesian positions of shape ``(natoms, 3)``,
+            the index of that frame in ``qstring``, and its distance from the start.
+        """
         start_xyz = start_xyz.reshape(-1,3)
         prev_xyz, prev_idx, prev_s = start_xyz, 0, 0.0
         for idx in range(1, len(qstring)-1):
@@ -200,6 +211,7 @@ class FreezingString:
 
     @staticmethod
     def _ric_tangent(coords: Redundant, dqds: "NDArray[Any]", xyz: "NDArray[Any]") -> "NDArray[Any]":
+        """Map an internal coordinate tangent ``dq/ds`` at ``xyz`` to a normalized Cartesian tangent."""
         Bprim = coords.b_matrix(xyz)
         U = coords.u_matrix(Bprim)
         B = U.T @ Bprim
