@@ -67,7 +67,8 @@ Specifying a Step Size Directly
 
 Instead of setting ``nnodes_min``, you can pass an explicit Cartesian step
 size (in Angstrom). The number of nodes is then determined automatically from
-the path arc length.
+the Cartesian distance ``D`` between the aligned endpoints. Setting
+``nnodes_min=N`` is equivalent to ``stepsize=D/N``.
 
 .. code-block:: python
 
