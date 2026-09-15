@@ -235,7 +235,7 @@ class FreezingString:
             )
 
         if self.interp_method == "ric":
-            qstring = interp()
+            string = interp()
             s = calculate_arc_length(string)
             cs = CubicSpline(s, string, axis=0)
 
@@ -247,7 +247,7 @@ class FreezingString:
             if self.output is not None:
                 self.output.write_current_frontier_node("r", r_atoms)
 
-            r_next, r_idx, r_s = self._march(interp.coords, qstring, r_xyz)
+            r_next, r_idx, r_s = self._march(interp.coords, string, r_xyz)
             r_frontier = self.atoms.copy()
             r_frontier.set_positions(r_next.reshape(-1, 3))
 
@@ -266,7 +266,7 @@ class FreezingString:
             if self.output is not None:
                 self.output.write_current_frontier_node("p", p_atoms)
 
-            p_next, p_idx, p_s = self._march(interp.coords, qstring[::-1], p_xyz)
+            p_next, p_idx, p_s = self._march(interp.coords, string[::-1], p_xyz)
             p_frontier = self.atoms.copy()
             p_frontier.set_positions(p_next.reshape(-1, 3))
 
