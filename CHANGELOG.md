@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update tests setup, implemented unit tests, regression CI tests, integration tests
 - `nnodes_min` now sets `stepsize = D / nnodes_min` (D = aligned Cartesian endpoint distance) and RIC always uses the early-stopping back-transform path, so `nnodes_min=N` and `stepsize=D/N` give identical results
 - RIC frontier node is now the closer of the two frames bracketing the step size
-- Back transform now fails
+- Back transform fails now raises
 
 ## [1.0.1] - 2026
 ### Added
